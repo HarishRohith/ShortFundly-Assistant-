@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { RotateCcw, VolumeX, Eye, Compass, Calendar } from 'lucide-react-native';
+import { RotateCcw, VolumeX, Sparkles, Hand } from 'lucide-react-native';
 import { COLORS } from '../config/colors';
 
 export function SpokenDisplay({
@@ -9,9 +9,6 @@ export function SpokenDisplay({
   onRepeat,
   onStop,
   isSpeaking,
-  onCheckMoney,
-  onWhichWay,
-  onMorningBriefing,
 }) {
   return (
     <ScrollView
@@ -38,11 +35,14 @@ export function SpokenDisplay({
         style={styles.responseCard}
         accessible={true}
         accessibilityLiveRegion="polite"
-        accessibilityLabel={`Assi reply: ${lastResponse || 'Say "Hey Assi" or tap the center orb to begin.'}`}
+        accessibilityLabel={`Assi reply: ${lastResponse || 'Say "Hey Assi" or tap the center mascot to begin.'}`}
       >
-        <Text style={styles.responseLabel}>ASSI</Text>
+        <View style={styles.responseHeaderRow}>
+          <Text style={styles.responseLabel}>ASSI</Text>
+          <Sparkles size={14} color={COLORS.brandPrimary} />
+        </View>
         <Text style={styles.responseText}>
-          {lastResponse || 'Say "Hey Assi" or tap the center orb to speak.'}
+          {lastResponse || 'Say "Hey Assi" or tap the center mascot to speak.'}
         </Text>
       </View>
 
@@ -56,7 +56,7 @@ export function SpokenDisplay({
           accessibilityLabel="Repeat last response. Double-tapping anywhere on screen also repeats."
           style={styles.actionButton}
         >
-          <RotateCcw size={20} color={COLORS.brandRed} />
+          <RotateCcw size={18} color={COLORS.brandPrimary} />
           <Text style={styles.actionButtonText}>REPEAT</Text>
         </TouchableOpacity>
 
@@ -68,62 +68,22 @@ export function SpokenDisplay({
           accessibilityLabel="Stop speech playback"
           style={[
             styles.actionButton,
-            isSpeaking && { borderColor: COLORS.brandRed, backgroundColor: COLORS.brandRedDark },
+            isSpeaking && { borderColor: COLORS.danger, backgroundColor: '#FEE2E2' },
           ]}
         >
-          <VolumeX size={20} color={isSpeaking ? COLORS.brandRed : COLORS.textPrimary} />
-          <Text style={[styles.actionButtonText, isSpeaking && { color: COLORS.brandRed }]}>
+          <VolumeX size={18} color={isSpeaking ? COLORS.danger : COLORS.textPrimary} />
+          <Text style={[styles.actionButtonText, isSpeaking && { color: COLORS.danger }]}>
             {isSpeaking ? 'STOP SPEECH' : 'SILENCE'}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Quick Sensory Shortcuts for Blind / Low-Vision Access */}
-      <View style={styles.shortcutsSection}>
-        <Text style={styles.shortcutsHeader}>QUICK SENSORY ACTIONS</Text>
-        <View style={styles.shortcutsRow}>
-          {/* Check Money */}
-          <TouchableOpacity
-            onPress={onCheckMoney}
-            activeOpacity={0.85}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Check currency money. Opens camera to identify Indian rupee note."
-            style={styles.shortcutTile}
-          >
-            <Eye size={22} color={COLORS.brandRed} />
-            <Text style={styles.shortcutTitle}>CHECK MONEY</Text>
-            <Text style={styles.shortcutSub}>₹10 to ₹500</Text>
-          </TouchableOpacity>
-
-          {/* Which Way Compass */}
-          <TouchableOpacity
-            onPress={onWhichWay}
-            activeOpacity={0.85}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Which direction am I facing. Announces cardinal heading and vibrates at North."
-            style={styles.shortcutTile}
-          >
-            <Compass size={22} color={COLORS.brandRed} />
-            <Text style={styles.shortcutTitle}>WHICH WAY</Text>
-            <Text style={styles.shortcutSub}>Haptic North</Text>
-          </TouchableOpacity>
-
-          {/* Daily Briefing */}
-          <TouchableOpacity
-            onPress={onMorningBriefing}
-            activeOpacity={0.85}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Daily briefing. Speaks medicines, tasks, and battery summary."
-            style={styles.shortcutTile}
-          >
-            <Calendar size={22} color={COLORS.brandRed} />
-            <Text style={styles.shortcutTitle}>BRIEFING</Text>
-            <Text style={styles.shortcutSub}>Meds & Tasks</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Discreet Tactile Gesture Guide */}
+      <View style={styles.gestureGuideCard}>
+        <Hand size={14} color={COLORS.textMuted} />
+        <Text style={styles.gestureGuideText}>
+          Single tap to speak • Double tap to repeat • Swipe down to silence
+        </Text>
       </View>
     </ScrollView>
   );
@@ -136,14 +96,19 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 28,
-    gap: 14,
+    gap: 12,
   },
   queryCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
+    shadowColor: COLORS.cardShadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
   },
   cardLabel: {
     fontSize: 11,
@@ -153,37 +118,42 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   queryText: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.textSecondary,
-    lineHeight: 24,
+    lineHeight: 23,
   },
   responseCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 20,
     borderWidth: 2,
-    borderColor: COLORS.brandRed,
-    minHeight: 115,
+    borderColor: COLORS.brandPrimary,
+    minHeight: 120,
     justifyContent: 'center',
-    shadowColor: COLORS.brandRed,
+    shadowColor: COLORS.brandPrimary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  responseHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
   },
   responseLabel: {
     fontSize: 13,
     fontWeight: '900',
-    color: COLORS.brandRed,
+    color: COLORS.brandPrimary,
     letterSpacing: 1.5,
-    marginBottom: 6,
   },
   responseText: {
-    fontSize: 21,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: COLORS.textPrimary,
-    lineHeight: 30,
+    lineHeight: 28,
   },
   actionRow: {
     flexDirection: 'row',
@@ -200,51 +170,35 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
-    minHeight: 52,
+    minHeight: 50,
+    shadowColor: COLORS.cardShadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
+    elevation: 1,
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: COLORS.textPrimary,
     letterSpacing: 1,
   },
-  shortcutsSection: {
-    marginTop: 6,
-  },
-  shortcutsHeader: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: COLORS.textMuted,
-    letterSpacing: 1.5,
-    marginBottom: 10,
-  },
-  shortcutsRow: {
+  gestureGuideCard: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  shortcutTile: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    borderWidth: 1.5,
-    borderColor: COLORS.surfaceBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    minHeight: 88,
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.brandPrimaryLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(79, 70, 229, 0.15)',
   },
-  shortcutTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: COLORS.textPrimary,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-  },
-  shortcutSub: {
-    fontSize: 10,
-    color: COLORS.textMuted,
+  gestureGuideText: {
+    fontSize: 11,
     fontWeight: '600',
+    color: COLORS.textSecondary,
+    textAlign: 'center',
   },
 });

@@ -162,7 +162,7 @@ export const AppNavigationService = {
     if (language === 'tanglish') {
       return {
         success: true,
-        reply: `${appName} open panren bro.`,
+        reply: `${appName} open panren.`,
         appName,
       };
     }

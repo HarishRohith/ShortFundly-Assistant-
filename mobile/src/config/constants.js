@@ -13,8 +13,6 @@ export const WAKE_WORDS = [
   'ஏய் அஸ்ஸி',
   'ஹே அஸி',
   'அஸி',
-  'hey bro',
-  'bro',
 ];
 
 export const LANGUAGES = {

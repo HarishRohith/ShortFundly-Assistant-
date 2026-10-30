@@ -32,7 +32,7 @@ class SystemScheduleManager {
           extra: {
             'android.intent.extra.alarm.HOUR': hour,
             'android.intent.extra.alarm.MINUTES': minute,
-            'android.intent.extra.alarm.MESSAGE': 'Hey Bro Alarm',
+            'android.intent.extra.alarm.MESSAGE': 'Assi Alarm',
             'android.intent.extra.alarm.SKIP_UI': true,
           },
         });
@@ -87,7 +87,7 @@ class SystemScheduleManager {
         await IntentLauncher.startActivityAsync('android.intent.action.SET_TIMER', {
           extra: {
             'android.intent.extra.alarm.LENGTH': seconds,
-            'android.intent.extra.alarm.MESSAGE': 'Hey Bro Timer',
+            'android.intent.extra.alarm.MESSAGE': 'Assi Timer',
             'android.intent.extra.alarm.SKIP_UI': true,
           },
         });
@@ -107,7 +107,7 @@ class SystemScheduleManager {
   // 3. NATIVE CALENDAR EVENT SCHEDULER
   async markCalendarEvent(query, language = 'en') {
     const q = query.toLowerCase().trim();
-    const clean = q.replace(/^(?:hey bro|bro|please)?\s*(?:mark date|calendar|add event|mark event|schedule event)\s+/i, '');
+    const clean = q.replace(/^(?:hey assi|assi|please)?\s*(?:mark date|calendar|add event|mark event|schedule event)\s+/i, '');
 
     HapticService.onProcessing();
 
@@ -149,7 +149,7 @@ class SystemScheduleManager {
           const canOpen = await Linking.canOpenURL(u);
           if (canOpen) {
             await Linking.openURL(u);
-            const reply = 'Opening ChatGPT Voice mode now, bro.';
+            const reply = 'Opening ChatGPT Voice mode now.';
             await SpeechService.speak(reply, { preferredLang: language });
             return { success: true, reply };
           }

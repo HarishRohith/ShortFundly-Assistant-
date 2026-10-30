@@ -1,3 +1,4 @@
+import { Linking } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { WAKE_WORDS } from '../config/constants';
 import { HapticService } from './hapticService';
@@ -14,12 +15,12 @@ class WakeWordManager {
     this.currentLanguage = 'en';
   }
 
-  // Set the callback invoked when "Hey Bro" is triggered
+  // Set the callback invoked when "Hey Assi" is triggered
   setCallback(callback) {
     this.onWakeWordDetectedCallback = callback;
   }
 
-  // Set callback when user speaks a command along with Hey Bro
+  // Set callback when user speaks a command along with Hey Assi
   setCommandCallback(callback) {
     this.onCommandDetectedCallback = callback;
   }
@@ -31,7 +32,7 @@ class WakeWordManager {
     return WAKE_WORDS.some((wake) => clean.includes(wake));
   }
 
-  // Strip wake word from prompt if user says "Hey Bro what is the time"
+  // Strip wake word from prompt if user says "Hey Assi what is the time"
   stripWakeWord(text) {
     let result = text;
     for (const w of WAKE_WORDS) {
@@ -52,10 +53,10 @@ class WakeWordManager {
 
     try {
       // Keep app awake during foreground listening
-      await activateKeepAwakeAsync('HeyBroWakeService');
+      await activateKeepAwakeAsync('AssiWakeService');
     } catch (e) {}
 
-    // Hook speech recognition listener for "Hey Bro"
+    // Hook speech recognition listener for "Hey Assi"
     if (SpeechRecognitionService.isAvailable()) {
       const langCode = language === 'ta' ? 'ta-IN' : 'en-US';
       this.unsubscribeSpeechRecognition = SpeechRecognitionService.addResultListener(
@@ -86,11 +87,16 @@ class WakeWordManager {
       });
     }
 
-    console.log('[WakeWordService] Wake word listener started. Listening for "Hey Bro"...');
+    console.log('[WakeWordService] Wake word listener started. Listening for "Hey Assi"...');
   }
 
   // Trigger wake word programmatically or from audio stream
   async triggerWakeWord(language = 'en') {
+    // Bring app to foreground over other apps if in background
+    try {
+      await Linking.openURL('assivoice://wake');
+    } catch (e) {}
+
     await HapticService.onWakeWord();
 
     let wakeGreeting = "Yes, I am Assi, I'm listening!";
@@ -111,7 +117,7 @@ class WakeWordManager {
   async stopService() {
     this.isActive = false;
     try {
-      deactivateKeepAwake('HeyBroWakeService');
+      deactivateKeepAwake('AssiWakeService');
     } catch (e) {}
 
     if (this.unsubscribeSpeechRecognition) {

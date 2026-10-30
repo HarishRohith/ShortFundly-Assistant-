@@ -82,7 +82,7 @@ class PermissionManager {
 
       if (allGranted) {
         HapticService.onSuccess();
-        await SpeechService.speak('All permissions granted! Your assistant is fully ready, bro.');
+        await SpeechService.speak('All permissions granted! Assi is fully ready to assist you hands-free.');
       } else {
         HapticService.onConfirmationRequired();
       }

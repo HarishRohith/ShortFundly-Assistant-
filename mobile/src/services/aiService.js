@@ -25,6 +25,10 @@ class GeminiAIService {
     return Boolean(this.apiKey && this.apiKey.length > 10);
   }
 
+  async askAssi(prompt, language = 'en') {
+    return this.askBro(prompt, language);
+  }
+
   async askBro(prompt, language = 'en') {
     HapticService.onProcessing();
 
@@ -96,34 +100,34 @@ class GeminiAIService {
 
     if (clean.includes('how are you') || clean.includes('eppadi irukka') || clean.includes('எப்படி இருக்கிறாய்')) {
       if (language === 'ta') {
-        reply = 'நான் எப்போதும் போல சுறுசுறுப்பா இருக்கேன் ப்ரோ! உங்களுக்கு உதவ நான் தயார். சொல்லுங்க, என்ன வேணும்?';
+        reply = 'நான் எப்போதும் போல சுறுசுறுப்பா இருக்கேன்! உங்களுக்கு உதவ நான் தயார். சொல்லுங்க, என்ன செய்ய வேண்டும்?';
       } else if (language === 'tanglish') {
-        reply = 'Naan super-ah irukken bro! Ungalukku help panna ready. Sollunga enna pannanum?';
+        reply = 'Naan super-ah irukken! Ungalukku help panna ready. Sollunga enna pannanum?';
       } else {
-        reply = "I'm doing great, bro! Always right here by your side. How can I help you right now?";
+        reply = "I'm doing great! Always right here by your side. How can I help you right now?";
       }
     } else if (clean.includes('who are you') || clean.includes('who made you') || clean.includes('யார் நீ')) {
       reply = language === 'ta'
-        ? 'நான் உங்க மை ப்ரோ! உங்கள் கைகளிலும் குரலிலும் இருக்கும் உற்ற நண்பன் மற்றும் குரல் உதவியாளர்.'
-        : "I'm My Bro, your personal voice companion built to help you navigate, call, message, and stay informed with zero effort.";
+        ? 'நான் அஸ்ஸி! உங்கள் கைகளிலும் குரலிலும் இருக்கும் உற்ற நண்பன் மற்றும் குரல் உதவியாளர்.'
+        : "I'm Assi, your personal voice assistant built to help you navigate, call, message, and stay informed hands-free.";
     } else if (clean.includes('thank you') || clean.includes('thanks') || clean.includes('நன்றி')) {
       reply = language === 'ta'
-        ? 'இதுக்கு எதுக்கு ப்ரோ நன்றி! நாம நண்பர்கள், எப்பவும் நான் உங்களுக்கு துணையா இருப்பேன்.'
-        : "Anytime, bro! You never have to thank me—I've always got your back.";
+        ? 'மகிழ்ச்சி! எப்பவும் நான் உங்களுக்கு துணையா இருப்பேன்.'
+        : "Anytime! You never have to thank me—I've always got your back.";
     } else if (clean.includes('i love you') || clean.includes('love u')) {
-      reply = "Love you too, bro! Proud to be your wingman.";
+      reply = "Love you too! Proud to be your assistant.";
     } else if (clean.includes('bored') || clean.includes('joke') || clean.includes('கதை')) {
-      reply = "Why don't scientists trust atoms, bro? Because they make up everything!";
+      reply = "Why don't scientists trust atoms? Because they make up everything!";
     } else {
       // General question
       reply = language === 'ta'
-        ? `நீங்கள் கேட்டது புரிந்தது ப்ரோ. ${prompt} பற்றி மேலும் விவரங்கள் அறிய நீங்கள் இணைய தேடலை பயன்படுத்தலாம்.`
-        : `Got you, bro. For ${prompt}, I can search the web or open an app for you anytime.`;
+        ? `நீங்கள் கேட்டது புரிந்தது. ${prompt} பற்றி மேலும் விவரங்கள் அறிய நீங்கள் இணைய தேடலை பயன்படுத்தலாம்.`
+        : `Got it. For ${prompt}, I can search the web or open an app for you anytime.`;
     }
 
     HapticService.onSuccess();
     await SpeechService.speak(reply, { preferredLang: language });
-    return { success: true, reply, provider: 'BroEngine' };
+    return { success: true, reply, provider: 'AssiEngine' };
   }
 }
 

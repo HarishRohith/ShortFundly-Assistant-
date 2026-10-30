@@ -192,7 +192,7 @@ export const CallMessageService = {
     if (language === 'ta') {
       prompt = `நீங்கள் ${resolvedName} என்பவரை அழைக்க விரும்புகிறீர்கள். இப்போது அழைக்கவா? ஆம் அல்லது இல்லை என்று சொல்லுங்கள்.`;
     } else if (language === 'tanglish') {
-      prompt = `${resolvedName} ku call panna porom bro. Call panna vaa? Yes or No sollunga.`;
+      prompt = `${resolvedName} ku call panna porom. Call panna vaa? Yes or No sollunga.`;
     }
 
     return {
@@ -270,7 +270,7 @@ export const CallMessageService = {
     if (language === 'ta') {
       prompt = `${recipient} என்பவருக்கு "${content}" என்று ${serviceName} செய்தி அனுப்பவா? ஆம் அல்லது இல்லை என்று சொல்லுங்கள்.`;
     } else if (language === 'tanglish') {
-      prompt = `${recipient} ku "${content}" nu ${serviceName} message anuppava bro? Yes or No sollunga.`;
+      prompt = `${recipient} ku "${content}" nu ${serviceName} message anuppava? Yes or No sollunga.`;
     }
 
     return {
@@ -354,7 +354,7 @@ export const CallMessageService = {
     if (language === 'ta') {
       prompt = `${callerNameOrNumber || 'அறியப்படாத எண்'} என்பவரிடமிருந்து அழைப்பு வருகிறது.`;
     } else if (language === 'tanglish') {
-      prompt = `${callerNameOrNumber || 'Unknown number'} kitta irundhu call varudhu bro.`;
+      prompt = `${callerNameOrNumber || 'Unknown number'} kitta irundhu call varudhu.`;
     }
     await SpeechService.speak(prompt, { preferredLang: language });
     return { success: true, prompt };

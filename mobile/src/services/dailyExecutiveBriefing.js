@@ -47,9 +47,9 @@ class DailyExecutiveBriefingManager {
 
     HapticService.onSuccess();
 
-    let fullBriefing = `Good morning, bro! Today is ${dayName}. Phone battery is ${batteryLevel}%. ${medSummary} ${taskSummary} Remember to drink water regularly. Have a wonderful day!`;
+    let fullBriefing = `Good morning! I am Assi with your daily briefing. Today is ${dayName}. Phone battery is ${batteryLevel}%. ${medSummary} ${taskSummary} Remember to drink water regularly. Have a wonderful day!`;
     if (language === 'ta') {
-      fullBriefing = `இனிய காலை வணக்கம் ப்ரோ! இன்று ${dayName}. போன் பேட்டரி ${batteryLevel}%. ${medSummary} மறக்காமல் தண்ணீர் குடியுங்கள். இன்றைய நாள் சிறக்க வாழ்த்துகள்!`;
+      fullBriefing = `இனிய காலை வணக்கம்! நான் அஸ்ஸி. இன்று ${dayName}. போன் பேட்டரி ${batteryLevel}%. ${medSummary} மறக்காமல் தண்ணீர் குடியுங்கள். இன்றைய நாள் சிறக்க வாழ்த்துகள்!`;
     }
 
     await SpeechService.speak(fullBriefing, { preferredLang: language });
@@ -69,9 +69,9 @@ class DailyExecutiveBriefingManager {
     const hydr = await MedicalCareService.getHydrationData();
     let chargeReminder = battery <= 35 ? 'Please plug in your charger before going to sleep.' : 'Battery level is good.';
 
-    let wrapup = `Evening check-in, bro: You completed ${hydr.glassesDrunk} glasses of water today. Battery is at ${battery}%. ${chargeReminder} Rest well and good night!`;
+    let wrapup = `Evening check-in from Assi: You completed ${hydr.glassesDrunk} glasses of water today. Battery is at ${battery}%. ${chargeReminder} Rest well and good night!`;
     if (language === 'ta') {
-      wrapup = `இரவு வணக்கம் ப்ரோ: இன்று ${hydr.glassesDrunk} டம்ளர் தண்ணீர் குடித்துள்ளீர்கள். பேட்டரி ${battery}%. தூங்கும் முன் சார்ஜ் போட மறக்காதீர்கள். நல்ல உறக்கம் பெற வாழ்த்துகள்!`;
+      wrapup = `இரவு வணக்கம்: நான் அஸ்ஸி. இன்று ${hydr.glassesDrunk} டம்ளர் தண்ணீர் குடித்துள்ளீர்கள். பேட்டரி ${battery}%. தூங்கும் முன் சார்ஜ் போட மறக்காதீர்கள். நல்ல உறக்கம் பெற வாழ்த்துகள்!`;
     }
 
     HapticService.onSuccess();

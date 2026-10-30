@@ -161,18 +161,6 @@ export default function App() {
     await SpeechService.speak(helpMsg, { preferredLang: preferences?.language || 'auto' });
   };
 
-  const handleCheckMoney = async () => {
-    await processUtterance('check money');
-  };
-
-  const handleWhichWay = async () => {
-    await processUtterance('which direction am I facing');
-  };
-
-  const handleMorningBriefing = async () => {
-    await processUtterance('morning briefing');
-  };
-
   // Action Confirmation Handlers
   const handleConfirmAction = async () => {
     if (!pendingAction) return;
@@ -189,7 +177,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.canvas} />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.canvas} />
 
       <View
         style={styles.container}
@@ -214,16 +202,13 @@ export default function App() {
           onLongPress={handleHelpPress}
         />
 
-        {/* Spoken Dialogue Display & Quick Sensory Shortcuts */}
+        {/* Spoken Dialogue Display */}
         <SpokenDisplay
           lastQuery={lastQuery}
           lastResponse={lastResponse}
           onRepeat={repeatLastMessage}
           onStop={stopSpeech}
           isSpeaking={state === ASSISTANT_STATE.SPEAKING}
-          onCheckMoney={handleCheckMoney}
-          onWhichWay={handleWhichWay}
-          onMorningBriefing={handleMorningBriefing}
         />
 
         {/* Action Confirmation Modal (for Call / SMS dispatch) */}
@@ -240,19 +225,17 @@ export default function App() {
           visible={remindersVisible}
           onClose={() => setRemindersVisible(false)}
           onAddVoiceReminder={() => {
-            SpeechService.speak('What should I remind you about, bro?');
+            SpeechService.speak('What should I remind you about?');
             startListening();
           }}
         />
 
-        {/* Bro Quick Settings Modal */}
+        {/* Assi Voice Settings Modal */}
         <QuickSettingsModal
           visible={settingsVisible}
           onClose={() => setSettingsVisible(false)}
           preferences={preferences}
           onUpdatePreferences={updatePreferences}
-          onOpenReminders={() => setRemindersVisible(true)}
-          onOpenPermissions={() => setPermissionModalVisible(true)}
         />
 
         {/* Upfront Permissions & Notification Access Onboarding */}

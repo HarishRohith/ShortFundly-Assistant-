@@ -1,4 +1,4 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CryptoVault } from './secureVault';
 
 const PROFILE_KEY = '@bro_user_profile_v1';
@@ -20,7 +20,7 @@ class UserProfileManager {
       guardianName: 'Guardian',
       guardianPhone: '',
       voiceAuthEnabled: false,
-      voicePassphrase: '', // e.g. bro secure or PIN digits
+      voicePassphrase: '', // e.g. assi secure or PIN digits
       discreetMode: false,
       autoListenOnWake: true,
       topTasks: [],
@@ -130,28 +130,28 @@ class UserProfileManager {
     if (topForNow === 'IDENTIFY_CURRENCY') {
       return isTa
         ? 'வழக்கமாக இந்த நேரத்தில் ரூபாய் நோட்டு சரிபார்ப்பீர்கள். பணம் சரிபார்க்க வேண்டுமா?'
-        : 'You often check currency around this time. Would you like to check money, bro?';
+        : 'You often check currency around this time. Would you like to check money?';
     } else if (topForNow === 'CHECK_MEDICINES' || topForNow === 'ADD_MEDICINE') {
       return isTa
         ? 'மாத்திரை சாப்பிடும் நேரம். உங்கள் மருந்துகளை சரிபார்க்கவா?'
-        : 'It might be medicine time. Should I check your prescription status, bro?';
+        : 'It might be medicine time. Should I check your prescription status?';
     } else if (topForNow === 'BATTERY_STATUS') {
       return isTa
         ? 'பேட்டரி நிலையை சரிபார்க்கவா?'
-        : 'Would you like to hear your current battery level, bro?';
+        : 'Would you like to hear your current battery level?';
     } else if (timeBucket === 'morning') {
       return isTa
-        ? 'காலை வணக்கம் ப்ரோ! இன்றைய நாளுக்கான காலை அறிக்கை கேட்க வேண்டுமா?'
-        : 'Good morning bro! Would you like to hear your morning briefing?';
+        ? 'காலை வணக்கம்! இன்றைய நாளுக்கான காலை அறிக்கை கேட்க வேண்டுமா?'
+        : 'Good morning! Would you like to hear your morning briefing?';
     } else if (timeBucket === 'evening') {
       return isTa
-        ? 'இரவு வணக்கம் ப்ரோ! தண்ணீர் இலக்கு மற்றும் தூக்க சரிபார்ப்பை கேட்கலாமா?'
-        : 'Good evening bro! Ready for your evening check-in and night tablets?';
+        ? 'இரவு வணக்கம்! தண்ணீர் இலக்கு மற்றும் தூக்க சரிபார்ப்பை கேட்கலாமா?'
+        : 'Good evening! Ready for your evening check-in and night tablets?';
     }
 
     return isTa
-      ? 'உங்களுக்கு உதவ நான் தயார் ப்ரோ.'
-      : 'I am here to help. Tap anytime to command.';
+      ? 'உங்களுக்கு உதவ நான் தயார். நான் அஸ்ஸி.'
+      : 'I am Assi, here to help. Tap or speak anytime to command.';
   }
 }
 

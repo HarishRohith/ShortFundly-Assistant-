@@ -1,19 +1,25 @@
-// Bro Assistant Design System Tokens
-// Inspired by Linear, Apple HIG, and Raycast - Engineered for maximum low-vision accessibility (21:1 Contrast)
+// Assi Assistant Design System Tokens — Luminous White Theme
+// Inspired by Apple HIG, Linear, and Vercel — 16:1 Contrast Ratio for maximum low-vision clarity
 export const COLORS = {
-  canvas: '#060709',            // Infinite Deep Obsidian Canvas
-  surface: '#0E1015',           // Matte Card Surface
-  surfaceElevated: '#161922',   // Elevated Tactile Container
-  surfaceBorder: '#232836',     // Architectural High-Contrast Boundary
-  textPrimary: '#FFFFFF',       // 100% Pure Luminance White (21:1 on Black)
-  textSecondary: '#CBD5E1',     // High-Legibility Off-White (14:1)
-  textMuted: '#94A3B8',         // Compliant Accessible Steel Gray (7:1)
-  brandRed: '#FF3B30',          // Electric Vivid Crimson (Primary Accent)
-  brandRedDark: '#200707',      // Deep Subdued Crimson Aura
-  accentRed: '#FF453A',         // Active Microphone Pulse
-  accentCyan: '#38BDF8',        // Acoustic Thinking Indicator
+  canvas: '#F8FAFC',            // Luminous Clean Porcelain Canvas
+  surface: '#FFFFFF',           // Crisp White Card Surface
+  surfaceElevated: '#FFFFFF',   // Elevated Pure White Card
+  surfaceBorder: '#E2E8F0',     // Subtle Slate Edge Boundary
+  surfaceBorderSubtle: '#F1F5F9', // Whisper Divider
+  textPrimary: '#0F172A',       // Deepest Obsidian Slate (16:1 AAA on White)
+  textSecondary: '#334155',     // High-Legibility Dark Slate (10:1)
+  textMuted: '#64748B',         // Accessible Medium Slate (6:1)
+  brandPrimary: '#4F46E5',      // Royal Electric Indigo
+  brandPrimaryLight: '#EEF2FF', // Whisper Indigo Tint
+  brandAccent: '#06B6D4',       // Bioluminescent Cyan Spark
+  accentCyan: '#06B6D4',        // Listening / Thinking Glow
+  accentRed: '#EF4444',         // Active Microphone Pulse
+  brandRed: '#EF4444',          // Danger / Silence Accent
+  brandRedDark: '#FEE2E2',      // Crimson Wash Tint
   success: '#10B981',           // Emerald Affirmation
   warning: '#F59E0B',           // Amber Safety Caution
   danger: '#EF4444',            // Emergency Crimson
-  ripple: 'rgba(255, 59, 48, 0.25)',
+  cardShadow: 'rgba(15, 23, 42, 0.08)',
+  ripple: 'rgba(79, 70, 229, 0.15)',
 };
+

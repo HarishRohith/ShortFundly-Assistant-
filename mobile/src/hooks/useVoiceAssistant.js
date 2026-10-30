@@ -80,7 +80,7 @@ export function useVoiceAssistant() {
       return;
     }
 
-    // Strip wake word if prefixed: e.g. "Hey Bro what is the battery level"
+    // Strip wake word if prefixed: e.g. "Hey Assi what is the battery level"
     const commandText = WakeWordService.stripWakeWord(clean);
 
     setState(ASSISTANT_STATE.PROCESSING);
@@ -190,8 +190,8 @@ export function useVoiceAssistant() {
       hasAnnouncedStartupRef.current = true;
       const lang = preferences.language;
       const readyMsg = lang === 'ta'
-        ? 'ஹே ப்ரோ செயலில் உள்ளது. நீங்கள் எப்போது வேண்டுமானாலும் ஹே ப்ரோ என்று அழைக்கலாம்.'
-        : "Hey Bro is ready in hands-free mode. Just say 'Hey Bro' anytime to speak.";
+        ? 'ஹே அஸ்ஸி தயாராக உள்ளது. நீங்கள் எப்போது வேண்டுமானாலும் ஹே அஸ்ஸி என்று அழைக்கலாம்.'
+        : "Hey Assi is ready in hands-free mode. Just say 'Hey Assi' anytime to speak.";
       SpeechService.speak(readyMsg, { preferredLang: lang });
     }
 

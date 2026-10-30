@@ -1,59 +1,32 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView, Switch, TextInput } from 'react-native';
-import { Settings, X, Volume2, Globe, Bell, Battery, Shield, Calendar, Sparkles, ExternalLink } from 'lucide-react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView, Switch } from 'react-native';
+import { Settings, X, Volume2, Globe, Sparkles, Battery, ExternalLink, ShieldCheck } from 'lucide-react-native';
 import { COLORS } from '../config/colors';
 import { SpeechService } from '../services/speechService';
 import { PermissionService } from '../services/permissionService';
-import { AIService } from '../services/aiService';
-import { CallMessageService } from '../services/callMessageService';
 
 export function QuickSettingsModal({
   visible,
   onClose,
   preferences = {},
   onUpdatePreferences,
-  onOpenReminders,
-  onOpenPermissions,
 }) {
   const currentLang = preferences?.language || 'auto';
   const currentRate = preferences?.speechRate || 1.0;
-  const [apiKeyInput, setApiKeyInput] = useState(preferences?.geminiApiKey || '');
-  const [guardianPhoneInput, setGuardianPhoneInput] = useState(preferences?.guardianPhone || '');
-
-  const handleSaveApiKey = () => {
-    AIService.setApiKey(apiKeyInput);
-    onUpdatePreferences({ geminiApiKey: apiKeyInput });
-    SpeechService.speak('Gemini 2.5 Flash model settings updated.');
-  };
-
-  const handleSaveGuardianPhone = async () => {
-    if (guardianPhoneInput.trim()) {
-      await CallMessageService.saveContact('guardian', guardianPhoneInput.trim());
-      await CallMessageService.saveContact('emergency', guardianPhoneInput.trim());
-      onUpdatePreferences({ guardianPhone: guardianPhoneInput.trim() });
-      SpeechService.speak('Guardian emergency contact saved successfully.');
-    }
-  };
+  const currentPitch = preferences?.speechPitch || 1.0;
 
   const handleTestSpeech = async () => {
-    let testMsg = "Hello! Assi voice assistant is online and working properly.";
+    let testMsg = "Hello! I am Assi, your hands-free companion. How can I help you today?";
     if (currentLang === 'ta') {
-      testMsg = 'வணக்கம்! அஸ்ஸி குரல் உதவியாளர் சிறப்பாக இயங்குகிறது.';
+      testMsg = 'வணக்கம்! நான் அஸ்ஸி. உங்களுக்கு உதவ எப்போதும் தயாராக இருக்கிறேன்.';
     } else if (currentLang === 'tanglish') {
-      testMsg = 'Vanakkam! Assi voice assistant nalla work aagudhu.';
+      testMsg = 'Vanakkam! Naan Assi, ungalukku help panna ready.';
     }
     await SpeechService.speak(testMsg, {
       preferredLang: currentLang,
       rate: currentRate,
+      pitch: currentPitch,
     });
-  };
-
-  const handleOpenNotificationSettings = async () => {
-    await PermissionService.openNotificationListenerSettings();
-  };
-
-  const handleOpenAppSettings = async () => {
-    await PermissionService.openAppSettings();
   };
 
   const handleOpenBatterySettings = async () => {
@@ -64,6 +37,10 @@ export function QuickSettingsModal({
     await PermissionService.openOverlaySettings();
   };
 
+  const handleOpenAppSettings = async () => {
+    await PermissionService.openAppSettings();
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
@@ -71,86 +48,28 @@ export function QuickSettingsModal({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <Settings size={24} color={COLORS.brandRed} />
-              <Text style={styles.title}>BRO SETTINGS</Text>
+              <View style={styles.iconCircle}>
+                <Settings size={20} color={COLORS.brandPrimary} />
+              </View>
+              <Text style={styles.title}>VOICE SETTINGS</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Close settings"
+              accessibilityLabel="Close voice settings"
               style={styles.closeButton}
             >
-              <X size={24} color={COLORS.textPrimary} />
+              <X size={20} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* 1. Android Permissions & Notification Access */}
+            {/* 1. Voice Language */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Shield size={18} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>SYSTEM PERMISSIONS & ACCESS</Text>
-              </View>
-              <Text style={styles.sectionDescription}>
-                Enable Device & App Notifications so Assi can speak incoming WhatsApp messages, SMS, and calls aloud.
-              </Text>
-              <View style={styles.buttonStack}>
-                <TouchableOpacity
-                  onPress={handleOpenNotificationSettings}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Open Android notification access settings"
-                  style={styles.permButton}
-                >
-                  <Bell size={18} color="#FFFFFF" />
-                  <Text style={styles.permButtonText}>NOTIFICATION ACCESS SETTINGS</Text>
-                  <ExternalLink size={16} color="#FFFFFF" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleOpenAppSettings}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Open Android app permissions settings"
-                  style={styles.permButtonSecondary}
-                >
-                  <Shield size={18} color={COLORS.brandRed} />
-                  <Text style={styles.permButtonSecondaryText}>ALL APP PERMISSIONS</Text>
-                  <ExternalLink size={16} color={COLORS.brandRed} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleOpenBatterySettings}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Unrestricted background battery settings"
-                  style={styles.permButtonSecondary}
-                >
-                  <Battery size={18} color="#10B981" />
-                  <Text style={[styles.permButtonSecondaryText, { color: '#10B981' }]}>UNRESTRICTED BATTERY (BACKGROUND)</Text>
-                  <ExternalLink size={16} color="#10B981" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleOpenOverlaySettings}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Display over other apps settings"
-                  style={styles.permButtonSecondary}
-                >
-                  <Sparkles size={18} color="#38BDF8" />
-                  <Text style={[styles.permButtonSecondaryText, { color: '#38BDF8' }]}>DISPLAY OVER OTHER APPS (POPUP)</Text>
-                  <ExternalLink size={16} color="#38BDF8" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* 2. Preferred Language Selection */}
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <Globe size={18} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>VOICE LANGUAGE</Text>
+                <Globe size={17} color={COLORS.brandPrimary} />
+                <Text style={styles.sectionTitle}>ASSISTANT LANGUAGE</Text>
               </View>
               <View style={styles.optionRow}>
                 {[
@@ -184,11 +103,11 @@ export function QuickSettingsModal({
               </View>
             </View>
 
-            {/* 3. Speech Rate (TTS) */}
+            {/* 2. Speech Speed (Rate) */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Volume2 size={18} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>SPEECH SPEED (TTS)</Text>
+                <Volume2 size={17} color={COLORS.brandPrimary} />
+                <Text style={styles.sectionTitle}>SPEECH SPEED (RATE)</Text>
               </View>
               <View style={styles.optionRow}>
                 {[
@@ -220,127 +139,120 @@ export function QuickSettingsModal({
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+
+            {/* 3. Voice Pitch (Tone) */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Sparkles size={17} color={COLORS.brandPrimary} />
+                <Text style={styles.sectionTitle}>VOICE PITCH (TONE)</Text>
+              </View>
+              <View style={styles.optionRow}>
+                {[
+                  { pitch: 0.85, label: 'DEEP' },
+                  { pitch: 1.0, label: 'NATURAL' },
+                  { pitch: 1.2, label: 'BRIGHT' },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.pitch.toString()}
+                    onPress={() => onUpdatePreferences({ speechPitch: item.pitch })}
+                    accessible={true}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: currentPitch === item.pitch }}
+                    accessibilityLabel={`Voice pitch ${item.label}`}
+                    style={[
+                      styles.choiceButton,
+                      currentPitch === item.pitch && styles.choiceButtonActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.choiceText,
+                        currentPitch === item.pitch && styles.choiceTextActive,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
               <TouchableOpacity
                 onPress={handleTestSpeech}
+                activeOpacity={0.8}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Test current voice speed"
+                accessibilityLabel="Test current voice settings"
                 style={styles.testVoiceButton}
               >
-                <Text style={styles.testVoiceText}>TEST VOICE</Text>
+                <Volume2 size={16} color={COLORS.brandPrimary} />
+                <Text style={styles.testVoiceText}>TEST ASSI VOICE</Text>
               </TouchableOpacity>
             </View>
 
-            {/* 4. Automated Wake Word & Battery Alerts */}
+            {/* 4. Hey Assi Wake Word Toggle */}
             <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <Battery size={18} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>AUTOMATED VOICE ALERTS</Text>
-              </View>
-
               <View style={styles.toggleRow}>
-                <Text style={styles.toggleLabel}>"Hey Assi" Wake Word</Text>
+                <View>
+                  <Text style={styles.toggleLabel}>"Hey Assi" Wake Word</Text>
+                  <Text style={styles.toggleSub}>Always listen for wake word hands-free</Text>
+                </View>
                 <Switch
                   value={preferences?.wakeWordEnabled ?? true}
                   onValueChange={(val) => onUpdatePreferences({ wakeWordEnabled: val })}
-                  trackColor={{ false: '#262933', true: COLORS.brandRed }}
-                  thumbColor={COLORS.textPrimary}
-                />
-              </View>
-
-              <View style={styles.toggleRow}>
-                <Text style={styles.toggleLabel}>Low-Battery Voice Warning</Text>
-                <Switch
-                  value={preferences?.batteryAlertsEnabled ?? true}
-                  onValueChange={(val) => onUpdatePreferences({ batteryAlertsEnabled: val })}
-                  trackColor={{ false: '#262933', true: COLORS.brandRed }}
-                  thumbColor={COLORS.textPrimary}
+                  trackColor={{ false: '#CBD5E1', true: COLORS.brandPrimary }}
+                  thumbColor="#FFFFFF"
                 />
               </View>
             </View>
 
-            {/* 5. Gemini 2.5 Flash AI API */}
+            {/* 5. Essential Background Access (For Home Screen & Other Apps) */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Sparkles size={18} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>GEMINI 2.5 FLASH AI</Text>
+                <ShieldCheck size={17} color={COLORS.brandPrimary} />
+                <Text style={styles.sectionTitle}>BACKGROUND EXECUTION ACCESS</Text>
               </View>
               <Text style={styles.sectionDescription}>
-                Connect Google Gemini 2.5 Flash for ultra-fast, conversational AI responses.
+                Required for Assi to listen and trigger when you are on the Home screen or inside other apps.
               </Text>
-              <TextInput
-                value={apiKeyInput}
-                onChangeText={setApiKeyInput}
-                placeholder="Paste Gemini API Key (AIzaSy...)"
-                placeholderTextColor="#64748B"
-                style={styles.keyInput}
-                secureTextEntry
-                accessible={true}
-                accessibilityLabel="Gemini API Key input"
-              />
-              <TouchableOpacity
-                onPress={handleSaveApiKey}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Save Gemini API Key"
-                style={styles.saveKeyButton}
-              >
-                <Text style={styles.saveKeyButtonText}>SAVE AI MODEL KEY</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 6. Guardian Emergency Phone */}
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <Shield size={18} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>GUARDIAN EMERGENCY PHONE</Text>
-              </View>
-              <Text style={styles.sectionDescription}>
-                Number dialed automatically when you say "call guardian" or if a fall is detected.
-              </Text>
-              <TextInput
-                value={guardianPhoneInput}
-                onChangeText={setGuardianPhoneInput}
-                placeholder="Guardian Phone (+91 9876543210)"
-                placeholderTextColor="#64748B"
-                style={styles.keyInput}
-                keyboardType="phone-pad"
-                accessible={true}
-                accessibilityLabel="Guardian phone number input"
-              />
-              <TouchableOpacity
-                onPress={handleSaveGuardianPhone}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Save guardian contact"
-                style={styles.saveKeyButton}
-              >
-                <Text style={styles.saveKeyButtonText}>SAVE GUARDIAN NUMBER</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 7. Reminders Manager Link */}
-            {onOpenReminders && (
-              <View style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                  <Calendar size={18} color={COLORS.brandRed} />
-                  <Text style={styles.sectionTitle}>SAVED REMINDERS</Text>
-                </View>
+              <View style={styles.buttonStack}>
                 <TouchableOpacity
-                  onPress={() => {
-                    onClose();
-                    onOpenReminders();
-                  }}
+                  onPress={handleOpenBatterySettings}
                   accessible={true}
                   accessibilityRole="button"
-                  accessibilityLabel="View and manage saved reminders"
-                  style={styles.permButtonSecondary}
+                  accessibilityLabel="Open battery optimization settings"
+                  style={styles.permButton}
                 >
-                  <Text style={styles.permButtonSecondaryText}>VIEW ALL REMINDERS</Text>
+                  <Battery size={17} color={COLORS.brandPrimary} />
+                  <Text style={styles.permButtonText}>UNRESTRICTED BATTERY</Text>
+                  <ExternalLink size={15} color={COLORS.brandPrimary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleOpenOverlaySettings}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open display over other apps settings"
+                  style={styles.permButton}
+                >
+                  <Sparkles size={17} color={COLORS.brandPrimary} />
+                  <Text style={styles.permButtonText}>DISPLAY OVER OTHER APPS</Text>
+                  <ExternalLink size={15} color={COLORS.brandPrimary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleOpenAppSettings}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Android app permissions"
+                  style={styles.permButton}
+                >
+                  <ShieldCheck size={17} color={COLORS.brandPrimary} />
+                  <Text style={styles.permButtonText}>APP PERMISSIONS</Text>
+                  <ExternalLink size={15} color={COLORS.brandPrimary} />
                 </TouchableOpacity>
               </View>
-            )}
+            </View>
           </ScrollView>
         </View>
       </View>
@@ -351,17 +263,22 @@ export function QuickSettingsModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.92)',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
     maxHeight: '88%',
     padding: 24,
+    shadowColor: COLORS.cardShadow,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 20,
   },
   header: {
     flexDirection: 'row',
@@ -374,28 +291,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: COLORS.brandPrimaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     color: COLORS.textPrimary,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surfaceElevated,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.canvas,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.surfaceBorder,
   },
   scrollContent: {
-    gap: 16,
+    gap: 14,
     paddingBottom: 28,
   },
   sectionCard: {
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: COLORS.canvas,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1.5,
@@ -408,19 +333,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
-    color: COLORS.brandRed,
-    letterSpacing: 1.2,
+    color: COLORS.brandPrimary,
+    letterSpacing: 1,
   },
   sectionDescription: {
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     marginBottom: 12,
     lineHeight: 18,
   },
   buttonStack: {
-    gap: 10,
+    gap: 8,
   },
   optionRow: {
     flexDirection: 'row',
@@ -428,109 +353,76 @@ const styles = StyleSheet.create({
   },
   choiceButton: {
     flex: 1,
-    height: 46,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   choiceButtonActive: {
-    borderColor: COLORS.brandRed,
-    backgroundColor: COLORS.brandRedDark,
+    borderColor: COLORS.brandPrimary,
+    backgroundColor: COLORS.brandPrimary,
   },
   choiceText: {
     fontSize: 12,
     fontWeight: '800',
-    color: COLORS.textMuted,
+    color: COLORS.textSecondary,
   },
   choiceTextActive: {
-    color: COLORS.brandRed,
+    color: '#FFFFFF',
   },
   testVoiceButton: {
     marginTop: 12,
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 22,
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: COLORS.brandRed,
-    backgroundColor: COLORS.brandRedDark,
+    borderColor: COLORS.brandPrimary,
+    backgroundColor: COLORS.brandPrimaryLight,
   },
   testVoiceText: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.brandRed,
+    color: COLORS.brandPrimary,
     letterSpacing: 1,
   },
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E222D',
+    paddingVertical: 4,
   },
   toggleLabel: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: COLORS.textPrimary,
   },
+  toggleSub: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
   permButton: {
-    backgroundColor: COLORS.brandRed,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: COLORS.surfaceBorder,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 50,
-    borderRadius: 14,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    height: 46,
+    borderRadius: 12,
   },
   permButtonText: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.8,
-  },
-  permButtonSecondary: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.brandRed,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 48,
-    borderRadius: 14,
-  },
-  permButtonSecondaryText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: COLORS.brandRed,
-    letterSpacing: 0.8,
-  },
-  keyInput: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.surfaceBorder,
+    fontWeight: '800',
     color: COLORS.textPrimary,
-    paddingHorizontal: 14,
-    height: 48,
-    fontSize: 13,
-    marginBottom: 10,
-  },
-  saveKeyButton: {
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.brandRed,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveKeyButtonText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
 });

@@ -58,32 +58,32 @@ class SpeechRecognitionManager {
         });
       });
 
+      const scheduleRestart = (delay = 500) => {
+        if (!this.autoRestart || this.isRestarting) return;
+        this.isRestarting = true;
+        if (this.restartTimer) clearTimeout(this.restartTimer);
+        this.restartTimer = setTimeout(async () => {
+          this.isRestarting = false;
+          if (this.autoRestart) {
+            await this.start({
+              lang: this.currentLanguage,
+              continuous: true,
+              autoRestart: true,
+            });
+          }
+        }, delay);
+      };
+
       const errSub = ExpoSpeechRecognitionModule.addListener('error', (event) => {
         console.log('[SpeechRecognition] Error event:', event?.error, event?.message);
         this.notifyError(event);
-
-        // Auto restart continuous listening if enabled and not aborted intentionally
-        if (this.autoRestart && this.isListening) {
-          setTimeout(() => {
-            if (this.autoRestart) {
-              this.start({ lang: this.currentLanguage, continuous: true });
-            }
-          }, 800);
-        }
+        scheduleRestart(800);
       });
 
       const endSub = ExpoSpeechRecognitionModule.addListener('end', () => {
         this.isListening = false;
         this.notifyState(false);
-
-        // Auto restart for always-on wake word mode
-        if (this.autoRestart) {
-          setTimeout(() => {
-            if (this.autoRestart) {
-              this.start({ lang: this.currentLanguage, continuous: true });
-            }
-          }, 500);
-        }
+        scheduleRestart(400);
       });
 
       this.subscriptions = [resSub, errSub, endSub];

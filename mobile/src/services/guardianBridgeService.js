@@ -33,7 +33,7 @@ class GuardianBridgeManager {
   parseErrandQuery(query) {
     const q = query.toLowerCase().trim();
     const clean = q
-      .replace(/^(?:hey bro|bro|please)?\s*(?:tell guardian|ask guardian|message guardian|send guardian)\s+(?:that|to\s+buy|to\s+get|i\s+need)?\s*/i, '')
+      .replace(/^(?:hey assi|assi|please)?\s*(?:tell guardian|ask guardian|message guardian|send guardian)\s+(?:that|to\s+buy|to\s+get|i\s+need)?\s*/i, '')
       .trim();
     return clean || 'daily supplies';
   }
@@ -61,7 +61,7 @@ class GuardianBridgeManager {
     } catch (e) {}
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const smsBody = `[Hey Bro Voice Assistant] Guardian Request at ${timestamp}: Your ward requested help with: "${items}".${batteryNote}`;
+    const smsBody = `[Assi Voice Assistant] Guardian Request at ${timestamp}: Your ward requested help with: "${items}".${batteryNote}`;
 
     const smsUrl = `sms:${guardian.phoneNumber}?body=${encodeURIComponent(smsBody)}`;
     try {
@@ -89,7 +89,7 @@ class GuardianBridgeManager {
     if (neighbor && neighbor.phoneNumber) {
       const reply = language === 'ta'
         ? `பக்கத்து வீட்டு ${neighbor.name || 'நண்பரை'} அழைக்கிறேன்.`
-        : `Calling your neighbor ${neighbor.name || ''} now, bro.`;
+        : `Calling your neighbor ${neighbor.name || ''} now.`;
       await SpeechService.speak(reply, { preferredLang: language });
       await CallMessageService.executeCall(neighbor.phoneNumber);
       return { success: true, reply };
@@ -109,7 +109,7 @@ class GuardianBridgeManager {
     const contacts = await this.getCommunityContacts();
     const neighbor = contacts.neighbor;
 
-    const sosMessage = `EMERGENCY ALERT: Your ward has triggered an urgent voice SOS via Hey Bro! Please contact or check immediately.`;
+    const sosMessage = `EMERGENCY ALERT: Your ward has triggered an urgent voice SOS via Assi Voice Assistant! Please contact or check immediately.`;
 
     if (guardian && guardian.phoneNumber) {
       try {

@@ -31,7 +31,7 @@ class MedicalCareManager {
   // Voice parse: "Add medicine Paracetamol 500mg at 9 PM after dinner with 30 pills"
   parseMedicineCommand(query) {
     const q = query.toLowerCase().trim();
-    const clean = q.replace(/^(?:hey bro|bro|please)?\s*(?:add medicine|add tablet|remind medicine|take tablet|set tablet)\s+/i, '');
+    const clean = q.replace(/^(?:hey assi|assi|please)?\s*(?:add medicine|add tablet|remind medicine|take tablet|set tablet)\s+/i, '');
 
     // Extract time: at 8 pm, at 10 am, at 14:00
     const timeMatch = clean.match(/(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
@@ -92,7 +92,7 @@ class MedicalCareManager {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `Hey Bro — Medicine Alert 💊`,
+          title: `Assi — Medicine Alert 💊`,
           body: `Time to take your ${med.name} (${med.timingNote}).`,
           sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
@@ -207,7 +207,7 @@ class MedicalCareManager {
     await AsyncStorage.setItem(STORAGE_KEYS.HYDRATION_DATA, JSON.stringify(data));
     HapticService.onSuccess();
 
-    let reply = `Logged a glass of water. You have drunk ${data.glassesDrunk} out of ${data.goal} glasses today, bro.`;
+    let reply = `Logged a glass of water. You have drunk ${data.glassesDrunk} out of ${data.goal} glasses today.`;
     if (language === 'ta') {
       reply = `ஒரு டம்ளர் தண்ணீர் குடித்ததாக குறிக்கப்பட்டது. இன்று ${data.goal} டம்ளரில் ${data.glassesDrunk} டம்ளர்கள் குடித்துள்ளீர்கள்.`;
     }
@@ -247,7 +247,7 @@ class MedicalCareManager {
     } else if (hours >= 19 && hours < 22) {
       message = language === 'ta' ? 'இரவு உணவு நேரம்! லேசான உணவு உண்டு இரவு மாத்திரைகளை நினைவில் வையுங்கள்.' : 'It is dinner time! Have your dinner and remember your night tablets.';
     } else {
-      message = language === 'ta' ? 'இப்போது உணவுக்கான நேரம் இல்லை ப்ரோ.' : 'It is not standard meal time right now, bro.';
+      message = language === 'ta' ? 'இப்போது உணவுக்கான நேரம் இல்லை.' : 'It is not standard meal time right now.';
     }
 
     return { success: true, reply: message };

@@ -19,7 +19,7 @@ export const InternetSearchService = {
 
     // Clean query
     const cleanQuery = query
-      .replace(/^(?:hey bro|bro|can you|please)?\s*(?:search the web for|search online for|search for|google for|look up|browse|search)\s+/i, '')
+      .replace(/^(?:hey assi|assi|can you|please)?\s*(?:search the web for|search online for|search for|google for|look up|browse|search)\s+/i, '')
       .trim();
 
     // 1. Try Backend Gemini Search Grounding
@@ -120,8 +120,8 @@ export const InternetSearchService = {
       return { success: true, reply: fullText };
     }
     const noMore = language === 'ta'
-      ? 'படிக்க கூடுதல் விவரங்கள் எதுவும் இல்லை ப்ரோ.'
-      : 'There is no additional search content to read, bro.';
+      ? 'படிக்க கூடுதல் விவரங்கள் எதுவும் இல்லை.'
+      : 'There is no additional search content to read.';
     await SpeechService.speak(noMore, { preferredLang: language });
     return { success: false, reply: noMore };
   },

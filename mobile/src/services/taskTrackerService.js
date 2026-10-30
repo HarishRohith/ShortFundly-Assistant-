@@ -22,7 +22,7 @@ class TaskTrackerManager {
   // Voice parse: "Add task buy milk", "To-do haircut today", "Add to my list buy groceries"
   parseTaskQuery(query) {
     const q = query.toLowerCase().trim();
-    const clean = q.replace(/^(?:hey bro|bro|please)?\s*(?:add task|new task|add to do|add to my list|to do|todo|create task)\s+/i, '');
+    const clean = q.replace(/^(?:hey assi|assi|please)?\s*(?:add task|new task|add to do|add to my list|to do|todo|create task)\s+/i, '');
     return clean || 'New Task';
   }
 
@@ -55,8 +55,8 @@ class TaskTrackerManager {
     const pending = tasks.filter((t) => !t.completed);
 
     if (pending.length === 0) {
-      let emptyMsg = 'You have no pending tasks on your to-do list, bro.';
-      if (language === 'ta') emptyMsg = 'உங்களுக்கு நிலுவையில் உள்ள பணிகள் எதுவும் இல்லை ப்ரோ.';
+      let emptyMsg = 'You have no pending tasks on your to-do list.';
+      if (language === 'ta') emptyMsg = 'உங்களுக்கு நிலுவையில் உள்ள பணிகள் எதுவும் இல்லை.';
       await SpeechService.speak(emptyMsg, { preferredLang: language });
       return { success: true, count: 0, reply: emptyMsg };
     }

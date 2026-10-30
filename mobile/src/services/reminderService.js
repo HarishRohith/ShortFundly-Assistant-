@@ -38,7 +38,7 @@ class ReminderManager {
     const q = query.toLowerCase().trim();
 
     // Remove prefix "remind me to", "remind me about", "set a reminder to"
-    const cleaned = q.replace(/^(?:hey bro|bro|please|can you)?\s*(?:set a reminder to|remind me to|remind me about|remind me|reminder for)\s+/i, '');
+    const cleaned = q.replace(/^(?:hey assi|assi|please|can you)?\s*(?:set a reminder to|remind me to|remind me about|remind me|reminder for)\s+/i, '');
 
     // Check relative minutes: "in 10 minutes", "in 1 hour"
     const inTimeMatch = cleaned.match(/(.+?)\s+in\s+(\d+)\s*(minute|minutes|min|mins|hour|hours|hr|hrs)/i);
@@ -102,7 +102,7 @@ class ReminderManager {
     try {
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Hey Bro — Reminder 🔔',
+          title: 'Assi — Reminder 🔔',
           body: parsed.title,
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
@@ -131,7 +131,7 @@ class ReminderManager {
       if (language === 'ta') {
         reply = `${parsed.humanTime} மணிக்கு "${parsed.title}" பற்றிய நினைவூட்டல் பதிவு செய்யப்பட்டது.`;
       } else if (language === 'tanglish') {
-        reply = `${parsed.humanTime} ku "${parsed.title}" reminder set panniyachu bro.`;
+        reply = `${parsed.humanTime} ku "${parsed.title}" reminder set panniyachu.`;
       }
 
       await SpeechService.speak(reply, { preferredLang: language });
@@ -169,7 +169,7 @@ class ReminderManager {
     if (list.length === 0) {
       let emptyMsg = 'You have no upcoming reminders.';
       if (language === 'ta') emptyMsg = 'வரவிருக்கும் நினைவூட்டல்கள் எதுவும் இல்லை.';
-      else if (language === 'tanglish') emptyMsg = 'Upcoming reminders edhum illa bro.';
+      else if (language === 'tanglish') emptyMsg = 'Upcoming reminders edhum illa.';
       await SpeechService.speak(emptyMsg, { preferredLang: language });
       return { success: true, count: 0, reply: emptyMsg };
     }

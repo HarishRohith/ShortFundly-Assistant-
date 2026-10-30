@@ -1,4 +1,4 @@
-﻿import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CryptoVault } from './secureVault';
 import { SpeechService } from './speechService';
 import { HapticService } from './hapticService';
@@ -22,8 +22,8 @@ class VoiceSecurityManager {
     this.isListeningActive = enabled;
     const isTa = language === 'ta';
     let reply = enabled
-      ? (isTa ? 'குரல் கேட்பது இயக்கப்பட்டது ப்ரோ. பேசலாம்.' : 'Microphone unmuted. I am listening, bro.')
-      : (isTa ? 'குரல் கேட்பது நிறுத்தப்பட்டது ப்ரோ. மீண்டும் இயக்க திரையை தட்டவும்.' : 'Listening disabled. Microphone muted for your privacy, bro.');
+      ? (isTa ? 'குரல் கேட்பது இயக்கப்பட்டது. பேசலாம்.' : 'Microphone unmuted. I am listening.')
+      : (isTa ? 'குரல் கேட்பது நிறுத்தப்பட்டது. மீண்டும் இயக்க திரையை தட்டவும்.' : 'Listening disabled. Microphone muted for your privacy.');
 
     HapticService.onToggle();
     return { success: true, enabled, reply };
@@ -34,12 +34,12 @@ class VoiceSecurityManager {
     try {
       const raw = await AsyncStorage.getItem(AUTH_CONFIG_KEY);
       if (!raw) {
-        return { enabled: false, passphrase: 'bro 1 2 3 4', voicePrintPattern: 'default' };
+        return { enabled: false, passphrase: 'assi 1 2 3 4', voicePrintPattern: 'default' };
       }
       const decrypted = CryptoVault.decrypt(raw, 'voice_auth');
-      return decrypted ? JSON.parse(decrypted) : { enabled: false, passphrase: 'bro 1 2 3 4' };
+      return decrypted ? JSON.parse(decrypted) : { enabled: false, passphrase: 'assi 1 2 3 4' };
     } catch (e) {
-      return { enabled: false, passphrase: 'bro 1 2 3 4' };
+      return { enabled: false, passphrase: 'assi 1 2 3 4' };
     }
   }
 
@@ -89,14 +89,14 @@ class VoiceSecurityManager {
       }, 3 * 60 * 1000);
 
       const reply = language === 'ta'
-        ? 'குரல் சரிபார்ப்பு வெற்றிகரமாக முடிந்தது ப்ரோ.'
-        : 'Voice authenticated successfully, bro. Access granted.';
+        ? 'குரல் சரிபார்ப்பு வெற்றிகரமாக முடிந்தது.'
+        : 'Voice authenticated successfully. Access granted.';
       return { verified: true, reply };
     } else {
       HapticService.onError();
       const reply = language === 'ta'
         ? 'குரல் கடவுச்சொல் பொருந்தவில்லை. மீண்டும் சொல்லவும்.'
-        : 'Voice authentication failed, bro. Passphrase does not match.';
+        : 'Voice authentication failed. Passphrase does not match.';
       return { verified: false, reply };
     }
   }

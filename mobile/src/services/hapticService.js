@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 
 export const HapticService = {
-  // Wake word triggered ("Hey Bro") -> Double heavy impact
+  // Wake word triggered ("Hey Assi") -> Double heavy impact
   onWakeWord: async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);

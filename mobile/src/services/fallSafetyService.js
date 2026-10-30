@@ -25,8 +25,8 @@ class FallSafetyManager {
     HapticService.onConfirmationRequired();
 
     const warningText = language === 'ta'
-      ? 'கவனம்! வீழ்ச்சி கண்டறியப்பட்டது! நீங்கள் நலமாக உள்ளீர்களா ப்ரோ? அவசர அழைப்பை ரத்து செய்ய 15 வினாடிகளுக்குள் "நான் நலமாக இருக்கிறேன்" என்று கூறவும்.'
-      : 'Fall detected! Are you okay, bro? Say "I am fine" or tap the screen within 15 seconds to cancel emergency calls.';
+      ? 'கவனம்! வீழ்ச்சி கண்டறியப்பட்டது! நீங்கள் நலமாக உள்ளீர்களா? அவசர அழைப்பை ரத்து செய்ய 15 வினாடிகளுக்குள் "நான் நலமாக இருக்கிறேன்" என்று கூறவும் அல்லது திரையைத் தொடவும்.'
+      : 'Fall detected! Are you okay? Say "I am fine" or tap the screen within 15 seconds to cancel emergency calls.';
 
     SpeechService.speak(warningText, { preferredLang: language });
 
@@ -55,8 +55,8 @@ class FallSafetyManager {
       HapticService.onSuccess();
 
       const cancelReply = language === 'ta'
-        ? 'மகிழ்ச்சி ப்ரோ! அவசர அழைப்பு ரத்து செய்யப்பட்டது. பாதுகாப்பாக இருங்கள்.'
-        : 'Glad you are okay, bro! Emergency alert cancelled. Take care.';
+        ? 'மகிழ்ச்சி! அவசர அழைப்பு ரத்து செய்யப்பட்டது. பாதுகாப்பாக இருங்கள்.'
+        : 'Glad you are okay! Emergency alert cancelled. Take care.';
       SpeechService.speak(cancelReply, { preferredLang: language });
       return { success: true, reply: cancelReply };
     }

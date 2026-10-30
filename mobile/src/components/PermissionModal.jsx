@@ -25,18 +25,18 @@ export function PermissionModal({ visible, onClose, onPermissionsGranted }) {
             <ShieldAlert size={44} color={COLORS.brandRed} />
           </View>
 
-          <Text style={styles.title}>ENABLE BRO ACCESS</Text>
+          <Text style={styles.title}>ENABLE ASSI ACCESS</Text>
           <Text style={styles.subtitle}>
-            To operate 100% hands-free and keep you safe, Bro needs standard Android permissions:
+            To operate 100% hands-free and keep you safe, Assi needs standard Android permissions:
           </Text>
 
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
             {/* Permission items */}
             <View style={styles.permItem}>
-              <Mic size={22} color={COLORS.brandRed} />
+              <Mic size={22} color={COLORS.brandPrimary} />
               <View style={styles.permTextCol}>
                 <Text style={styles.permTitle}>Microphone & Speech</Text>
-                <Text style={styles.permDesc}>To hear "Hey Bro" and your hands-free voice commands.</Text>
+                <Text style={styles.permDesc}>To hear "Hey Assi" and your hands-free voice commands.</Text>
               </View>
             </View>
 

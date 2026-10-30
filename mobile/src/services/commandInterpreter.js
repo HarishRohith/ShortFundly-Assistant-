@@ -110,8 +110,8 @@ export const CommandInterpreter = {
       if (phrase.length >= 3) {
         await VoiceSecurityService.setVoicePassphrase(phrase);
         const reply = language === 'ta'
-          ? `புதிய குரல் கடவுச்சொல் "${phrase}" என அமைக்கப்பட்டது ப்ரோ.`
-          : `Voice security passphrase set to "${phrase}", bro.`;
+          ? `புதிய குரல் கடவுச்சொல் "${phrase}" என அமைக்கப்பட்டது.`
+          : `Voice security passphrase set to "${phrase}".`;
         await SpeechService.speak(reply, { preferredLang: language });
         return { success: true, intent: 'SET_VOICE_PASSWORD', reply };
       }
@@ -138,14 +138,14 @@ export const CommandInterpreter = {
           await CallMessageService.saveContact(target, digits);
           const saveReply = language === 'ta'
             ? `${target} எண் சேமிக்கப்பட்டது. இப்போது அழைக்கிறேன்.`
-            : `Saved ${target}'s number. Calling ${target} now, bro!`;
+            : `Saved ${target}'s number. Calling ${target} now!`;
           await SpeechService.speak(saveReply, { preferredLang: language });
           await CallMessageService.executeCall({ target, phoneNumber: digits });
           return { success: true, intent: 'SAVED_AND_CALLED', reply: saveReply, clearPending: true };
         } else {
           const retryReply = language === 'ta'
-            ? `எண் சரியாக புரியவில்லை ப்ரோ. மீண்டும் சொல்லுங்க.`
-            : `I didn't catch the digits clearly, bro. What is ${target}'s phone number?`;
+            ? `எண் சரியாக புரியவில்லை. மீண்டும் சொல்லுங்க.`
+            : `I didn't catch the digits clearly. What is ${target}'s phone number?`;
           await SpeechService.speak(retryReply, { preferredLang: language });
           return {
             success: false,
@@ -454,8 +454,8 @@ export const CommandInterpreter = {
       await AssistantORM.storeMemory(key, val, 'learned_fact');
       HapticService.onSuccess();
       const reply = language === 'ta'
-        ? `புரிந்தது ப்ரோ! "${key}" பற்றிய தகவலை பாதுகாப்பாக குறித்துக்கொண்டேன்.`
-        : `Got it, bro! I have securely encrypted and remembered that ${key} is ${val}.`;
+        ? `புரிந்தது! "${key}" பற்றிய தகவலை பாதுகாப்பாக குறித்துக்கொண்டேன்.`
+        : `Got it! I have securely encrypted and remembered that ${key} is ${val}.`;
       await SpeechService.speak(reply, { preferredLang: language });
       return { success: true, intent: 'LEARN_MEMORY', reply };
     }
@@ -469,8 +469,8 @@ export const CommandInterpreter = {
       const recalled = await AssistantORM.recallMemory(clean);
       if (recalled) {
         const reply = language === 'ta'
-          ? `எனக்கு நினைவிருக்கிறது ப்ரோ: ${recalled}.`
-          : `I remember you told me, bro: ${recalled}.`;
+          ? `எனக்கு நினைவிருக்கிறது: ${recalled}.`
+          : `I remember you told me: ${recalled}.`;
         await SpeechService.speak(reply, { preferredLang: language });
         return { success: true, intent: 'RECALL_MEMORY', reply };
       }
@@ -595,13 +595,13 @@ export const CommandInterpreter = {
       if (guardian && guardian.phoneNumber) {
         const reply = language === 'ta'
           ? 'அவசர உதவி! உங்கள் காப்பாளரை உடனே அழைக்கிறேன்.'
-          : 'Emergency triggered! Calling your guardian immediately, bro.';
+          : 'Emergency triggered! Calling your guardian immediately.';
         await SpeechService.speak(reply, { preferredLang: language });
         await CallMessageService.executeCall({ target: 'Guardian', phoneNumber: guardian.phoneNumber });
         return { success: true, intent: 'EMERGENCY_CALL', reply, clearPending: true };
       } else {
         const askReply = language === 'ta'
-          ? 'காப்பாளர் எண் இன்னும் அமைக்கப்படவில்லை ப்ரோ. தயவுசெய்து எண்களை சொல்லவும்.'
+          ? 'காப்பாளர் எண் இன்னும் அமைக்கப்படவில்லை. தயவுசெய்து எண்களை சொல்லவும்.'
           : 'Guardian emergency number is not configured yet. Say the phone number to call.';
         await SpeechService.speak(askReply, { preferredLang: language });
         return {
@@ -624,7 +624,7 @@ export const CommandInterpreter = {
         const cleanNum = target.replace(/[^\d+]/g, '');
         const reply = language === 'ta'
           ? `${cleanNum} என்ற எண்ணை அழைக்கிறேன்.`
-          : `Calling ${cleanNum} now, bro.`;
+          : `Calling ${cleanNum} now.`;
         await SpeechService.speak(reply, { preferredLang: language });
         await CallMessageService.executeCall(cleanNum);
         return { success: true, intent: 'CALL_EXECUTED', reply, clearPending: true };
@@ -636,7 +636,7 @@ export const CommandInterpreter = {
         // Seamless! Number is already known -> Place call immediately without blocking modals
         const reply = language === 'ta'
           ? `${target} என்பவரை அழைக்கிறேன்.`
-          : `Calling ${target} now, bro.`;
+          : `Calling ${target} now.`;
         await SpeechService.speak(reply, { preferredLang: language });
         await CallMessageService.executeCall({ target, phoneNumber: contact.phoneNumber });
         return { success: true, intent: 'CALL_EXECUTED', reply, clearPending: true };
@@ -644,8 +644,8 @@ export const CommandInterpreter = {
 
       // 6c. Unknown Contact -> Prompt verbally for number, then seamlessly dial
       const askNumber = language === 'ta'
-        ? `${target} எண் எனக்கு தெரியாது ப்ரோ. அவர்களின் போன் நம்பர் சொல்லுங்க.`
-        : `I don't have a phone number for ${target} yet, bro. What is their number?`;
+        ? `${target} எண் எனக்கு தெரியாது. அவர்களின் போன் நம்பர் சொல்லுங்க.`
+        : `I don't have a phone number for ${target} yet. What is their number?`;
       await SpeechService.speak(askNumber, { preferredLang: language });
       return {
         success: true,
@@ -670,7 +670,7 @@ export const CommandInterpreter = {
         await CallMessageService.saveContact(contactName, digits);
         const reply = language === 'ta'
           ? `${contactName} போன் எண் சேமிக்கப்பட்டது.`
-          : `Saved ${contactName}'s number as ${digits}, bro.`;
+          : `Saved ${contactName}'s number as ${digits}.`;
         await SpeechService.speak(reply, { preferredLang: language });
         return { success: true, intent: 'SAVE_CONTACT', reply };
       }
@@ -826,7 +826,7 @@ export const CommandInterpreter = {
       clean.includes('enna panna mudiyum')
     ) {
       let helpReply = (
-        "Hey bro! Here is your complete accessibility guide: " +
+        "Hey! I am Assi, your complete accessibility guide: " +
         "You can press and hold anywhere on the screen to talk, double-tap to repeat, or tap to stop me. " +
         "For Health: say 'Add medicine Paracetamol at 8 PM', 'Check my medicines', or 'Drank a glass of water'. " +
         "For Privacy: say 'Enable discreet mode' to keep notifications private in public, or 'Read private message' when alone. " +
@@ -836,7 +836,7 @@ export const CommandInterpreter = {
       );
       if (language === 'ta') {
         helpReply = (
-          "வணக்கம் ப்ரோ! உங்கள் முழு குரல் வழிகாட்டி: " +
+          "வணக்கம்! நான் அஸ்ஸி, உங்கள் முழு குரல் வழிகாட்டி: " +
           "மருத்துவத்திற்கு: 'மாத்திரை சேர் பாராசிட்டமால் இரவு 8 மணிக்கு', 'தண்ணீர் குடித்தேன்'. " +
           "ரகசிய பாதுகாப்பிற்கு: 'ரகசிய முறை இயக்கு' அல்லது 'ரகசிய செய்தியை படி'. " +
           "பணிகளுக்கு: 'பணி சேர் பால் வாங்க வேண்டும்', 'அலாரம் வை காலை 6 மணிக்கு'. " +
@@ -850,15 +850,15 @@ export const CommandInterpreter = {
     }
 
     // 13. Conversational Intelligence & Humanized Companion (Gemini / AI Service)
-    const aiRes = await AIService.askBro(raw, language);
+    const aiRes = await AIService.askAssi(raw, language);
     if (aiRes && aiRes.reply) {
       return { success: aiRes.success, intent: 'AI_COMPANION', reply: aiRes.reply };
     }
 
     // 14. Universal Fallback
     const defaultReply = language === 'ta'
-      ? 'மன்னிக்கவும் ப்ரோ, அது எனக்கு புரியவில்லை. "உதவி" அல்லது "பேட்டரி" என்று கூறி முயற்சிக்கவும்.'
-      : 'I did not catch that, bro. You can ask for battery, call a contact, open an app, or ask me any question.';
+      ? 'மன்னிக்கவும், அது எனக்கு புரியவில்லை. "உதவி" அல்லது "பேட்டரி" என்று கூறி முயற்சிக்கவும்.'
+      : 'I did not catch that. You can ask for battery, call a contact, open an app, or ask me any question.';
     HapticService.onError();
     await SpeechService.speak(defaultReply, { preferredLang: language });
     return { success: false, intent: 'UNKNOWN', reply: defaultReply };

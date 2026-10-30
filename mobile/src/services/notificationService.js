@@ -87,7 +87,7 @@ class NotificationReaderManager {
     if (enableMatch) {
       const targetApp = enableMatch[1].trim();
       const res = await this.toggleApp(targetApp, true);
-      let reply = `Notifications for ${targetApp} are now enabled, bro.`;
+      let reply = `Notifications for ${targetApp} are now enabled.`;
       if (language === 'ta') reply = `${targetApp} செயலிக்கான அறிவிப்புகள் இயக்கப்பட்டது.`;
       await SpeechService.speak(reply, { preferredLang: language });
       return { success: true, reply };
@@ -96,7 +96,7 @@ class NotificationReaderManager {
     if (disableMatch) {
       const targetApp = disableMatch[1].trim();
       const res = await this.toggleApp(targetApp, false);
-      let reply = `Notifications for ${targetApp} are now disabled, bro.`;
+      let reply = `Notifications for ${targetApp} are now disabled.`;
       if (language === 'ta') reply = `${targetApp} செயலிக்கான அறிவிப்புகள் முடக்கப்பட்டது.`;
       await SpeechService.speak(reply, { preferredLang: language });
       return { success: true, reply };
@@ -166,7 +166,7 @@ class NotificationReaderManager {
     if (unread.length === 0) {
       let emptyReply = 'You have no new unread notifications.';
       if (language === 'ta') emptyReply = 'புதிய அறிவிப்புகள் எதுவும் இல்லை.';
-      else if (language === 'tanglish') emptyReply = 'Pudhu notifications edhum illa bro.';
+      else if (language === 'tanglish') emptyReply = 'Pudhu notifications edhum illa.';
 
       await SpeechService.speak(emptyReply, { preferredLang: language });
       return { success: true, count: 0, reply: emptyReply };
@@ -192,7 +192,7 @@ class NotificationReaderManager {
     if (language === 'ta') {
       fullSpokenText = `உங்களுக்கு ${unread.length} புதிய அறிவிப்புகள் வந்துள்ளன: `;
     } else if (language === 'tanglish') {
-      fullSpokenText = `Ungalukku ${unread.length} pudhu notifications vandhirukku bro: `;
+      fullSpokenText = `Ungalukku ${unread.length} pudhu notifications vandhirukku: `;
     }
 
     unread.forEach((n, idx) => {
