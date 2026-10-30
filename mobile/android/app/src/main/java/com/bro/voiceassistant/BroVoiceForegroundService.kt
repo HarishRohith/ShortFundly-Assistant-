@@ -15,7 +15,7 @@ import androidx.core.app.NotificationCompat
 class BroVoiceForegroundService : Service() {
 
     companion object {
-        const val CHANNEL_ID = bro_voice_foreground_channel
+        const val CHANNEL_ID = "bro_voice_foreground_channel"
         const val NOTIFICATION_ID = 2001
 
         fun startService(context: Context) {
