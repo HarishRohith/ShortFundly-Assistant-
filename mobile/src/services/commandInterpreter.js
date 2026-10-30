@@ -18,9 +18,19 @@ import { SpatialVisionService } from './spatialVisionService';
 import { FallSafetyService } from './fallSafetyService';
 import { HapticCompassService } from './hapticCompassService';
 import { DailyExecutiveBriefing } from './dailyExecutiveBriefing';
+import { UserProfileService } from './userProfileService';
+import { VoiceSecurityService } from './voiceSecurityService';
 
 export const CommandInterpreter = {
   async processCommand(query, context = {}) {
+    const res = await this._executeCommand(query, context);
+    if (res && res.success && res.intent) {
+      UserProfileService.logInteraction(res.intent, query).catch(() => {});
+    }
+    return res;
+  },
+
+  async _executeCommand(query, context = {}) {
     if (!query || !query.trim()) {
       return { success: false, reply: 'No command heard.' };
     }
@@ -29,6 +39,18 @@ export const CommandInterpreter = {
     const clean = raw.toLowerCase();
     const language = context.language || 'auto';
     const backendUrl = context.backendUrl || 'http://10.0.2.2:5000';
+
+    // 0. Privacy Mute Check
+    if (!VoiceSecurityService.isListeningEnabled()) {
+      const isUnmuteCmd = clean.includes('enable listening') || clean.includes('unmute') || clean.includes('start listening') || clean.includes('இயக்கு');
+      if (!isUnmuteCmd) {
+        return {
+          success: false,
+          intent: 'MUTED',
+          reply: language === 'ta' ? 'குரல் கேட்பது நிறுத்தப்பட்டுள்ளது. இயக்க திரையை தட்டவும் அல்லது "இயக்கு" என்று கூறவும்.' : 'Listening is currently muted. Tap screen or say "enable listening" to unmute.',
+        };
+      }
+    }
 
     // 0. Speech Controls: Repeat / Stop
     if (/^(repeat|say again|once more|மீண்டும் சொல்|thirumba sollu)/i.test(clean)) {
@@ -39,6 +61,72 @@ export const CommandInterpreter = {
     if (/^(stop|pause|quiet|shut up|hush|silence|நிறுத்து|amaithiya iru)/i.test(clean)) {
       await SpeechService.stop();
       return { success: true, intent: 'STOP' };
+    }
+
+    // 0a. Privacy & Listening Toggle (Module 7: Security & Privacy)
+    if (
+      clean.includes('disable listening') ||
+      clean.includes('stop listening') ||
+      clean.includes('mute assistant') ||
+      clean.includes('turn off microphone') ||
+      clean.includes('குரல் கேட்பதை நிறுத்து')
+    ) {
+      const secRes = VoiceSecurityService.setListeningEnabled(false, language);
+      await SpeechService.speak(secRes.reply, { preferredLang: language });
+      return { success: true, intent: 'DISABLE_LISTENING', reply: secRes.reply };
+    }
+
+    if (
+      clean.includes('enable listening') ||
+      clean.includes('start listening') ||
+      clean.includes('unmute assistant') ||
+      clean.includes('turn on microphone') ||
+      clean.includes('குரல் கேட்பதை இயக்கு')
+    ) {
+      const secRes = VoiceSecurityService.setListeningEnabled(true, language);
+      await SpeechService.speak(secRes.reply, { preferredLang: language });
+      return { success: true, intent: 'ENABLE_LISTENING', reply: secRes.reply };
+    }
+
+    // 0b. Voice Authentication for Security (Module 7)
+    if (
+      clean.startsWith('authenticate voice') ||
+      clean.startsWith('verify voice') ||
+      clean.startsWith('voice password is') ||
+      clean.includes('குரல் சரிபார்ப்பு')
+    ) {
+      const phrase = raw.replace(/^(?:authenticate voice|verify voice|voice password is)\s*/i, '');
+      const authRes = await VoiceSecurityService.verifyVoicePassphrase(phrase, language);
+      await SpeechService.speak(authRes.reply, { preferredLang: language });
+      return { success: authRes.verified, intent: 'VOICE_AUTHENTICATE', reply: authRes.reply };
+    }
+
+    if (
+      clean.startsWith('set voice password') ||
+      clean.startsWith('set voice passphrase') ||
+      clean.includes('குரல் கடவுச்சொல் அமை')
+    ) {
+      const phrase = raw.replace(/^(?:set voice password|set voice passphrase)\s*/i, '');
+      if (phrase.length >= 3) {
+        await VoiceSecurityService.setVoicePassphrase(phrase);
+        const reply = language === 'ta'
+          ? `புதிய குரல் கடவுச்சொல் "${phrase}" என அமைக்கப்பட்டது ப்ரோ.`
+          : `Voice security passphrase set to "${phrase}", bro.`;
+        await SpeechService.speak(reply, { preferredLang: language });
+        return { success: true, intent: 'SET_VOICE_PASSWORD', reply };
+      }
+    }
+
+    // 0c. Personalized Suggestions (Module 5: User Profile & Personalization)
+    if (
+      clean.includes('my suggestions') ||
+      clean.includes('what should i do') ||
+      clean.includes('any recommendations') ||
+      clean.includes('பரிந்துரைகள்')
+    ) {
+      const sugg = await UserProfileService.getPersonalizedSuggestions(language);
+      await SpeechService.speak(sugg, { preferredLang: language });
+      return { success: true, intent: 'PERSONALIZED_SUGGESTIONS', reply: sugg };
     }
 
     // 1. Check for Pending Confirmation (Yes / No for Calls & SMS, or Spoken Phone Number)
