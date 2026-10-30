@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "Assi",
-    "slug": "bro-voice-assistant",
-    "owner": "harishrohith",
+    "slug": "assi-voice-assistant",
+    "owner": "hackyhr",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -64,8 +64,8 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow My Bro to use the microphone.",
-          "speechRecognitionPermission": "Allow My Bro to use speech recognition.",
+          "microphonePermission": "Allow Assi to use the microphone.",
+          "speechRecognitionPermission": "Allow Assi to use speech recognition.",
           "androidSpeechServicePackages": [
             "com.google.android.googlequicksearchbox"
           ]
@@ -74,7 +74,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "638b1264-6811-4b14-b024-7a44f2d0f33d"
+        "projectId": "1167cafe-d1e8-4988-a0c4-20e4b05e28a4"
       }
     }
   }
