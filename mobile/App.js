@@ -59,7 +59,7 @@ export default function App() {
       if (!allGranted) {
         setPermissionModalVisible(true);
         SpeechService.speak(
-          'Welcome bro! Please grant permissions so I can listen to your voice and guide you hands-free.'
+          'Welcome! I am Assi. Please grant permissions so I can listen to your voice and guide you hands-free.'
         );
       }
     }
@@ -156,8 +156,8 @@ export default function App() {
   const handleHelpPress = async () => {
     const helpMsg =
       preferences?.language === 'ta'
-        ? 'ப்ரோ உங்கள் குரல் உதவியாளர். பேச திரையை ஒருமுறை தொடவும். மீண்டும் கேட்க இரண்டு முறை தொடவும்.'
-        : 'Bro is your hands-free companion. Tap the center button or say "Hey Bro" anytime to command.';
+        ? 'அஸ்ஸி உங்கள் குரல் உதவியாளர். பேச திரையை ஒருமுறை தொடவும். "ஹே அஸ்ஸி" என்றும் அழைக்கலாம்.'
+        : 'Assi is your hands-free companion. Tap the center button or say "Hey Assi" anytime to command.';
     await SpeechService.speak(helpMsg, { preferredLang: preferences?.language || 'auto' });
   };
 
@@ -195,7 +195,7 @@ export default function App() {
         style={styles.container}
         {...panResponder.panHandlers}
         accessible={true}
-        accessibilityLabel="Bro Voice Assistant Screen. Tap or say Hey Bro to command. Double tap to repeat."
+        accessibilityLabel="Assi Voice Assistant Screen. Tap or say Hey Assi to command. Double tap to repeat."
         accessibilityLiveRegion="assertive"
       >
         {/* Accessible Top Bar */}

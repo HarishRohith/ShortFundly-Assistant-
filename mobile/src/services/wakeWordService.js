@@ -93,11 +93,11 @@ class WakeWordManager {
   async triggerWakeWord(language = 'en') {
     await HapticService.onWakeWord();
 
-    let wakeGreeting = "yes bro, I'm listening";
+    let wakeGreeting = "Yes, I am Assi, I'm listening!";
     if (language === 'ta') {
-      wakeGreeting = 'சொல்லுங்க ப்ரோ, கேட்கிறேன்.';
+      wakeGreeting = 'சொல்லுங்க, நான் அஸ்ஸி, கேட்கிறேன்.';
     } else if (language === 'tanglish') {
-      wakeGreeting = 'yes bro, I am listening.';
+      wakeGreeting = 'Sollunga, naan Assi, listening!';
     }
 
     await SpeechService.speak(wakeGreeting, { preferredLang: language });

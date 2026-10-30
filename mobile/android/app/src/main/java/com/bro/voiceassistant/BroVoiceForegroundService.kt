@@ -1,4 +1,4 @@
-﻿package com.bro.voiceassistant
+package com.bro.voiceassistant
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -70,10 +70,10 @@ class BroVoiceForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                Bro Voice Assistant Background Service,
+                "Assi Voice Assistant Background Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = Keeps Hey Bro voice assistant active and responsive in background
+                description = "Keeps Hey Assi voice assistant active and responsive in background"
                 setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
@@ -93,8 +93,8 @@ class BroVoiceForegroundService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(Hey Bro Voice Assistant)
-            .setContentText(Active in background — tap to open)
+            .setContentTitle("Hey Assi Voice Assistant")
+            .setContentText("Assi is active in background — tap to open")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .setContentIntent(pendingIntent)

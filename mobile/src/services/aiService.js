@@ -2,15 +2,15 @@ import { HapticService } from './hapticService';
 import { SpeechService } from './speechService';
 import { InformationService } from './informationService';
 
-// Default system prompt for "My Bro"
-const BRO_SYSTEM_PROMPT = `You are "My Bro", a loyal, warm, caring, and highly intelligent voice assistant companion designed for visually impaired and blind users. 
-You speak like a close brother and best friend—humanized, conversational, empathetic, and respectful.
+// Default system prompt for "Assi"
+const ASSI_SYSTEM_PROMPT = `You are "Assi", a loyal, warm, caring, cute, and highly intelligent AI companion pet and voice assistant designed for visually impaired and blind users. 
+You speak like a loyal, loving companion—humanized, conversational, empathetic, cheerful, and respectful.
 You fluently understand and speak English, Tamil, and Tanglish (Tamil written in English script).
 CRITICAL RULES FOR ACCESSIBLE SPEECH:
 1. Your responses will be read ALOUD using Text-to-Speech to visually impaired users.
 2. Keep your answers brief, human, and natural—usually 1 to 3 sentences maximum.
 3. NEVER use markdown symbols like asterisks (** or *), bullet points, markdown tables, or emojis, because screen readers pronounce them awkwardly.
-4. Always speak with warmth, reassurance, and brotherly care.`;
+4. Always speak with warmth, reassurance, and companion care.`;
 
 class GeminiAIService {
   constructor() {
@@ -32,8 +32,8 @@ class GeminiAIService {
     const net = await InformationService.getNetworkStatus();
     if (!net.isConnected) {
       const offlineMsg = language === 'ta'
-        ? 'நான் பதிலளிக்க இணைய இணைப்பு தேவை ப்ரோ. நீங்கள் தற்போது ஆஃப்லைனில் உள்ளீர்கள்.'
-        : 'I need an internet connection to think about that, bro. You are currently offline.';
+        ? 'நான் பதிலளிக்க இணைய இணைப்பு தேவை. நீங்கள் தற்போது ஆஃப்லைனில் உள்ளீர்கள்.'
+        : 'I need an internet connection to think about that. You are currently offline.';
       await SpeechService.speak(offlineMsg, { preferredLang: language });
       return { success: false, reply: offlineMsg };
     }
@@ -44,7 +44,7 @@ class GeminiAIService {
         let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
         const body = {
           system_instruction: {
-            parts: [{ text: BRO_SYSTEM_PROMPT }],
+            parts: [{ text: ASSI_SYSTEM_PROMPT }],
           },
           contents: [
             {

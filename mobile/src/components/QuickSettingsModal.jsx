@@ -23,7 +23,7 @@ export function QuickSettingsModal({
   const handleSaveApiKey = () => {
     AIService.setApiKey(apiKeyInput);
     onUpdatePreferences({ geminiApiKey: apiKeyInput });
-    SpeechService.speak('Gemini 2.5 Flash model settings updated, bro.');
+    SpeechService.speak('Gemini 2.5 Flash model settings updated.');
   };
 
   const handleSaveGuardianPhone = async () => {
@@ -36,11 +36,11 @@ export function QuickSettingsModal({
   };
 
   const handleTestSpeech = async () => {
-    let testMsg = "Hello! Bro voice assistant is online and working properly.";
+    let testMsg = "Hello! Assi voice assistant is online and working properly.";
     if (currentLang === 'ta') {
-      testMsg = 'வணக்கம்! ப்ரோ குரல் உதவியாளர் சிறப்பாக இயங்குகிறது.';
+      testMsg = 'வணக்கம்! அஸ்ஸி குரல் உதவியாளர் சிறப்பாக இயங்குகிறது.';
     } else if (currentLang === 'tanglish') {
-      testMsg = 'Vanakkam bro! Voice assistant nalla work aagudhu.';
+      testMsg = 'Vanakkam! Assi voice assistant nalla work aagudhu.';
     }
     await SpeechService.speak(testMsg, {
       preferredLang: currentLang,
@@ -93,7 +93,7 @@ export function QuickSettingsModal({
                 <Text style={styles.sectionTitle}>SYSTEM PERMISSIONS & ACCESS</Text>
               </View>
               <Text style={styles.sectionDescription}>
-                Enable Device & App Notifications so Bro can speak incoming WhatsApp messages, SMS, and calls aloud.
+                Enable Device & App Notifications so Assi can speak incoming WhatsApp messages, SMS, and calls aloud.
               </Text>
               <View style={styles.buttonStack}>
                 <TouchableOpacity
@@ -240,7 +240,7 @@ export function QuickSettingsModal({
               </View>
 
               <View style={styles.toggleRow}>
-                <Text style={styles.toggleLabel}>"Hey Bro" Wake Word</Text>
+                <Text style={styles.toggleLabel}>"Hey Assi" Wake Word</Text>
                 <Switch
                   value={preferences?.wakeWordEnabled ?? true}
                   onValueChange={(val) => onUpdatePreferences({ wakeWordEnabled: val })}

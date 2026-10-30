@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "My Bro",
-    "slug": "bro-voice-assistant",
+    "name": "Assi",
+    "slug": "assi-voice-assistant",
     "owner": "harishrohith",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "brovoice",
+    "scheme": "assivoice",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
     "splash": {
@@ -18,8 +18,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.bro.voiceassistant",
       "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "Allow My Bro to use speech recognition.",
-        "NSMicrophoneUsageDescription": "Allow My Bro to use the microphone."
+        "NSSpeechRecognitionUsageDescription": "Allow Assi to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow Assi to use the microphone."
       }
     },
     "android": {

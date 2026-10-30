@@ -89,7 +89,7 @@ export function CentralVoiceOrb({ state, onPress, onLongPress }) {
       case ASSISTANT_STATE.AWAITING_CONFIRMATION:
         return 'Action confirmation needed. Say yes or no, or tap to confirm.';
       default:
-        return 'Bro voice assistant button. Tap or say Hey Bro to speak.';
+        return 'Assi voice assistant button. Tap or say Hey Assi to speak.';
     }
   };
 

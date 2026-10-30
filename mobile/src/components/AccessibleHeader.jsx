@@ -14,28 +14,28 @@ export function AccessibleHeader({
 
   return (
     <View style={styles.header}>
-      {/* Brand Identity: "BRO" Glyph + Status */}
+      {/* Brand Identity: "ASSI" Glyph + Status */}
       <View style={styles.brandRow}>
         <View style={styles.logoBadge}>
-          <Text style={styles.logoGlyph}>B</Text>
+          <Text style={styles.logoGlyph}>✦</Text>
         </View>
         <View style={styles.titleColumn}>
           <Text
             style={styles.appName}
             accessible={true}
             accessibilityRole="header"
-            accessibilityLabel="Bro Voice Assistant"
+            accessibilityLabel="Assi Voice Assistant"
           >
-            BRO
+            ASSI
           </Text>
           {wakeWordEnabled && (
             <View
               style={styles.wakeBadge}
               accessible={true}
-              accessibilityLabel="Wake word Hey Bro is active"
+              accessibilityLabel="Wake word Hey Assi is active"
             >
               <Radio size={11} color={COLORS.brandRed} />
-              <Text style={styles.wakeBadgeText}>HEY BRO READY</Text>
+              <Text style={styles.wakeBadgeText}>HEY ASSI READY</Text>
             </View>
           )}
         </View>
@@ -66,7 +66,7 @@ export function AccessibleHeader({
           onPress={onSettingsPress}
           accessible={true}
           accessibilityRole="button"
-          accessibilityLabel="Open Bro settings"
+          accessibilityLabel="Open Assi settings"
           style={styles.settingsButton}
         >
           <Settings size={20} color={COLORS.textPrimary} />

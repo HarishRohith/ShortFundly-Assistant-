@@ -38,11 +38,11 @@ export function SpokenDisplay({
         style={styles.responseCard}
         accessible={true}
         accessibilityLiveRegion="polite"
-        accessibilityLabel={`Bro reply: ${lastResponse || 'Say "Hey Bro" or tap the center orb to begin.'}`}
+        accessibilityLabel={`Assi reply: ${lastResponse || 'Say "Hey Assi" or tap the center orb to begin.'}`}
       >
-        <Text style={styles.responseLabel}>BRO</Text>
+        <Text style={styles.responseLabel}>ASSI</Text>
         <Text style={styles.responseText}>
-          {lastResponse || 'Say "Hey Bro" or tap the center orb to speak.'}
+          {lastResponse || 'Say "Hey Assi" or tap the center orb to speak.'}
         </Text>
       </View>
 
