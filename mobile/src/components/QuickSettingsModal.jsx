@@ -56,6 +56,14 @@ export function QuickSettingsModal({
     await PermissionService.openAppSettings();
   };
 
+  const handleOpenBatterySettings = async () => {
+    await PermissionService.openBatteryOptimizationSettings();
+  };
+
+  const handleOpenOverlaySettings = async () => {
+    await PermissionService.openOverlaySettings();
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
@@ -110,6 +118,30 @@ export function QuickSettingsModal({
                   <Shield size={18} color={COLORS.brandRed} />
                   <Text style={styles.permButtonSecondaryText}>ALL APP PERMISSIONS</Text>
                   <ExternalLink size={16} color={COLORS.brandRed} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleOpenBatterySettings}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Unrestricted background battery settings"
+                  style={styles.permButtonSecondary}
+                >
+                  <Battery size={18} color="#10B981" />
+                  <Text style={[styles.permButtonSecondaryText, { color: '#10B981' }]}>UNRESTRICTED BATTERY (BACKGROUND)</Text>
+                  <ExternalLink size={16} color="#10B981" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleOpenOverlaySettings}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Display over other apps settings"
+                  style={styles.permButtonSecondary}
+                >
+                  <Sparkles size={18} color="#38BDF8" />
+                  <Text style={[styles.permButtonSecondaryText, { color: '#38BDF8' }]}>DISPLAY OVER OTHER APPS (POPUP)</Text>
+                  <ExternalLink size={16} color="#38BDF8" />
                 </TouchableOpacity>
               </View>
             </View>

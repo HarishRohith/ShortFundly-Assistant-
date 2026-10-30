@@ -121,6 +121,33 @@ class PermissionManager {
       }
     }
   }
+
+  // Open Battery Optimization Settings (Unrestricted Background Running)
+  async openBatteryOptimizationSettings() {
+    if (Platform.OS === 'android') {
+      try {
+        await IntentLauncher.startActivityAsync(
+          'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS'
+        );
+      } catch (e) {
+        this.openAppSettings();
+      }
+    }
+  }
+
+  // Open Display Over Other Apps Settings (Overlay on Home Screen)
+  async openOverlaySettings() {
+    if (Platform.OS === 'android') {
+      try {
+        await IntentLauncher.startActivityAsync(
+          'android.settings.action.MANAGE_OVERLAY_PERMISSION',
+          { data: 'package:com.bro.voiceassistant' }
+        );
+      } catch (e) {
+        this.openAppSettings();
+      }
+    }
+  }
 }
 
 export const PermissionService = new PermissionManager();

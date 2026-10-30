@@ -17,6 +17,13 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
     super.onCreate(null)
+
+    // Start background voice assistant foreground service
+    try {
+      BroVoiceForegroundService.startService(this)
+    } catch (e: Exception) {
+      e.printStackTrace()
+    }
   }
 
   /**
