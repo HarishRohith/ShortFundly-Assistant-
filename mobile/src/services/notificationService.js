@@ -64,6 +64,47 @@ class NotificationReaderManager {
     );
   }
 
+  // Voice handler for managing which apps have notifications read
+  async handleVoiceManagement(query, language = 'en') {
+    await this.loadSettings();
+    const clean = query.toLowerCase();
+
+    // Check list intent: "which apps", "list allowed apps", "notification apps"
+    if (clean.includes('which app') || clean.includes('list notification') || clean.includes('allowed app') || clean.includes('apps allowed')) {
+      const appsList = Array.from(this.allowedApps).join(', ');
+      let reply = `Notifications are currently read for: ${appsList || 'no apps'}. You can say 'enable WhatsApp notifications' or 'disable YouTube notifications' anytime.`;
+      if (language === 'ta') {
+        reply = `தற்போது அறிவிப்புகள் படிக்கப்படும் செயலிகள்: ${appsList || 'எதுவுமில்லை'}.`;
+      }
+      await SpeechService.speak(reply, { preferredLang: language });
+      return { success: true, reply };
+    }
+
+    // Check toggle intent
+    const enableMatch = clean.match(/(?:enable|allow|turn on|start)\s+([a-zA-Z\s]+?)\s*notifications?/i);
+    const disableMatch = clean.match(/(?:disable|block|turn off|stop)\s+([a-zA-Z\s]+?)\s*notifications?/i);
+
+    if (enableMatch) {
+      const targetApp = enableMatch[1].trim();
+      const res = await this.toggleApp(targetApp, true);
+      let reply = `Notifications for ${targetApp} are now enabled, bro.`;
+      if (language === 'ta') reply = `${targetApp} செயலிக்கான அறிவிப்புகள் இயக்கப்பட்டது.`;
+      await SpeechService.speak(reply, { preferredLang: language });
+      return { success: true, reply };
+    }
+
+    if (disableMatch) {
+      const targetApp = disableMatch[1].trim();
+      const res = await this.toggleApp(targetApp, false);
+      let reply = `Notifications for ${targetApp} are now disabled, bro.`;
+      if (language === 'ta') reply = `${targetApp} செயலிக்கான அறிவிப்புகள் முடக்கப்பட்டது.`;
+      await SpeechService.speak(reply, { preferredLang: language });
+      return { success: true, reply };
+    }
+
+    return null;
+  }
+
   // Open Android Notification Listener system settings
   async openAndroidNotificationSettings() {
     if (Platform.OS === 'android') {
@@ -79,16 +120,44 @@ class NotificationReaderManager {
     return false;
   }
 
-  // Read all unread notifications aloud (from WhatsApp, SMS, Phone)
-  async readNotifications(language = 'en') {
+  // -----------------------------------------------------------------
+  // DISCREET PRIVACY MODE (For Public Places / Loudspeakers)
+  // -----------------------------------------------------------------
+  async toggleDiscreetMode(enable = null, language = 'en') {
     await this.loadSettings();
+    this.discreetMode = enable !== null ? enable : !this.discreetMode;
+    try {
+      await AsyncStorage.setItem('@hey_bro_discreet_mode', JSON.stringify(this.discreetMode));
+    } catch (e) {}
+
+    HapticService.onSuccess();
+    let reply = `Discreet notification mode is now ${this.discreetMode ? 'ON. Sensitive messages will not be read aloud in public.' : 'OFF.'}`;
+    if (language === 'ta') {
+      reply = `ரகசிய அறிவிப்பு முறை ${this.discreetMode ? 'இயக்கப்பட்டது. பொது இடங்களில் செய்திகள் சத்தமாக படிக்கப்படாது.' : 'முடக்கப்பட்டது.'}`;
+    }
+    await SpeechService.speak(reply, { preferredLang: language });
+    return { success: true, discreetMode: this.discreetMode, reply };
+  }
+
+  async isDiscreetModeActive() {
+    try {
+      const raw = await AsyncStorage.getItem('@hey_bro_discreet_mode');
+      return raw ? JSON.parse(raw) : false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Read all unread notifications aloud (from WhatsApp, SMS, Phone)
+  async readNotifications(language = 'en', forceReadPrivate = false) {
+    await this.loadSettings();
+    const isDiscreet = await this.isDiscreetModeActive();
 
     let allNotifs = [];
 
     // 1. Queued notifications
     if (this.queuedNotifications.length > 0) {
       allNotifs = this.queuedNotifications.filter((n) => !n.read);
-      this.queuedNotifications.forEach((n) => (n.read = true));
     }
 
     // Filter allowed apps
@@ -102,6 +171,20 @@ class NotificationReaderManager {
       await SpeechService.speak(emptyReply, { preferredLang: language });
       return { success: true, count: 0, reply: emptyReply };
     }
+
+    // If Discreet Mode is active and user didn't say "read private", announce safely without reading content
+    if (isDiscreet && !forceReadPrivate) {
+      HapticService.onConfirmationRequired();
+      let discreetAlert = `You have ${unread.length} new private notification from ${unread[0].sender || 'a contact'}. Discreet mode is ON. Say "Read private message" when you are in private.`;
+      if (language === 'ta') {
+        discreetAlert = `உங்களுக்கு ${unread.length} புதிய ரகசிய செய்தி வந்துள்ளது. ரகசிய முறை இயக்கத்தில் உள்ளது. தனியாக இருக்கும் போது "ரகசிய செய்தியை படி" என்று சொல்லுங்கள்.`;
+      }
+      await SpeechService.speak(discreetAlert, { preferredLang: language });
+      return { success: true, discreet: true, count: unread.length, reply: discreetAlert };
+    }
+
+    // Mark as read
+    this.queuedNotifications.forEach((n) => (n.read = true));
 
     HapticService.onProcessing();
 

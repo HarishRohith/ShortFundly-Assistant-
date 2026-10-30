@@ -1,30 +1,44 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView, Switch, TextInput } from 'react-native';
-import { Settings, X, Volume2, Globe, Bell, Battery, Shield, Calendar, Sparkles } from 'lucide-react-native';
+import { Settings, X, Volume2, Globe, Bell, Battery, Shield, Calendar, Sparkles, ExternalLink } from 'lucide-react-native';
 import { COLORS } from '../config/colors';
 import { SpeechService } from '../services/speechService';
-import { NotificationReaderService } from '../services/notificationService';
+import { PermissionService } from '../services/permissionService';
 import { AIService } from '../services/aiService';
+import { CallMessageService } from '../services/callMessageService';
 
 export function QuickSettingsModal({
   visible,
   onClose,
-  preferences,
+  preferences = {},
   onUpdatePreferences,
   onOpenReminders,
+  onOpenPermissions,
 }) {
-  const [apiKeyInput, setApiKeyInput] = useState(preferences.geminiApiKey || '');
+  const currentLang = preferences?.language || 'auto';
+  const currentRate = preferences?.speechRate || 1.0;
+  const [apiKeyInput, setApiKeyInput] = useState(preferences?.geminiApiKey || '');
+  const [guardianPhoneInput, setGuardianPhoneInput] = useState(preferences?.guardianPhone || '');
 
   const handleSaveApiKey = () => {
     AIService.setApiKey(apiKeyInput);
     onUpdatePreferences({ geminiApiKey: apiKeyInput });
-    SpeechService.speak('Gemini model settings updated.');
+    SpeechService.speak('Gemini 2.5 Flash model settings updated, bro.');
+  };
+
+  const handleSaveGuardianPhone = async () => {
+    if (guardianPhoneInput.trim()) {
+      await CallMessageService.saveContact('guardian', guardianPhoneInput.trim());
+      await CallMessageService.saveContact('emergency', guardianPhoneInput.trim());
+      onUpdatePreferences({ guardianPhone: guardianPhoneInput.trim() });
+      SpeechService.speak('Guardian emergency contact saved successfully.');
+    }
   };
 
   const handleTestSpeech = async () => {
-    let testMsg = "Hello! My Bro voice assistant is working properly.";
+    let testMsg = "Hello! Bro voice assistant is online and working properly.";
     if (currentLang === 'ta') {
-      testMsg = 'வணக்கம்! மை ப்ரோ குரல் உதவியாளர் சிறப்பாக இயங்குகிறது.';
+      testMsg = 'வணக்கம்! ப்ரோ குரல் உதவியாளர் சிறப்பாக இயங்குகிறது.';
     } else if (currentLang === 'tanglish') {
       testMsg = 'Vanakkam bro! Voice assistant nalla work aagudhu.';
     }
@@ -35,7 +49,11 @@ export function QuickSettingsModal({
   };
 
   const handleOpenNotificationSettings = async () => {
-    await NotificationReaderService.openAndroidNotificationSettings();
+    await PermissionService.openNotificationListenerSettings();
+  };
+
+  const handleOpenAppSettings = async () => {
+    await PermissionService.openAppSettings();
   };
 
   return (
@@ -45,8 +63,8 @@ export function QuickSettingsModal({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleRow}>
-              <Settings size={26} color={COLORS.brandRed} />
-              <Text style={styles.title}>MY BRO SETTINGS</Text>
+              <Settings size={24} color={COLORS.brandRed} />
+              <Text style={styles.title}>BRO SETTINGS</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
@@ -55,16 +73,52 @@ export function QuickSettingsModal({
               accessibilityLabel="Close settings"
               style={styles.closeButton}
             >
-              <X size={26} color={COLORS.textPrimary} />
+              <X size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {/* 1. Language Selection */}
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* 1. Android Permissions & Notification Access */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Globe size={20} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>PREFERRED LANGUAGE</Text>
+                <Shield size={18} color={COLORS.brandRed} />
+                <Text style={styles.sectionTitle}>SYSTEM PERMISSIONS & ACCESS</Text>
+              </View>
+              <Text style={styles.sectionDescription}>
+                Enable Device & App Notifications so Bro can speak incoming WhatsApp messages, SMS, and calls aloud.
+              </Text>
+              <View style={styles.buttonStack}>
+                <TouchableOpacity
+                  onPress={handleOpenNotificationSettings}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Android notification access settings"
+                  style={styles.permButton}
+                >
+                  <Bell size={18} color="#FFFFFF" />
+                  <Text style={styles.permButtonText}>NOTIFICATION ACCESS SETTINGS</Text>
+                  <ExternalLink size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleOpenAppSettings}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Android app permissions settings"
+                  style={styles.permButtonSecondary}
+                >
+                  <Shield size={18} color={COLORS.brandRed} />
+                  <Text style={styles.permButtonSecondaryText}>ALL APP PERMISSIONS</Text>
+                  <ExternalLink size={16} color={COLORS.brandRed} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* 2. Preferred Language Selection */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Globe size={18} color={COLORS.brandRed} />
+                <Text style={styles.sectionTitle}>VOICE LANGUAGE</Text>
               </View>
               <View style={styles.optionRow}>
                 {[
@@ -98,15 +152,15 @@ export function QuickSettingsModal({
               </View>
             </View>
 
-            {/* 2. Speech Rate */}
+            {/* 3. Speech Rate (TTS) */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Volume2 size={20} color={COLORS.brandRed} />
+                <Volume2 size={18} color={COLORS.brandRed} />
                 <Text style={styles.sectionTitle}>SPEECH SPEED (TTS)</Text>
               </View>
               <View style={styles.optionRow}>
                 {[
-                  { rate: 0.85, label: '0.8x' },
+                  { rate: 0.85, label: '0.85x' },
                   { rate: 1.0, label: '1.0x' },
                   { rate: 1.25, label: '1.25x' },
                   { rate: 1.5, label: '1.5x' },
@@ -146,19 +200,19 @@ export function QuickSettingsModal({
               </TouchableOpacity>
             </View>
 
-            {/* 3. Wake Word & Battery Alerts */}
+            {/* 4. Automated Wake Word & Battery Alerts */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Battery size={20} color={COLORS.brandRed} />
+                <Battery size={18} color={COLORS.brandRed} />
                 <Text style={styles.sectionTitle}>AUTOMATED VOICE ALERTS</Text>
               </View>
 
               <View style={styles.toggleRow}>
                 <Text style={styles.toggleLabel}>"Hey Bro" Wake Word</Text>
                 <Switch
-                  value={preferences.wakeWordEnabled}
+                  value={preferences?.wakeWordEnabled ?? true}
                   onValueChange={(val) => onUpdatePreferences({ wakeWordEnabled: val })}
-                  trackColor={{ false: '#333338', true: COLORS.brandRed }}
+                  trackColor={{ false: '#262933', true: COLORS.brandRed }}
                   thumbColor={COLORS.textPrimary}
                 />
               </View>
@@ -166,49 +220,28 @@ export function QuickSettingsModal({
               <View style={styles.toggleRow}>
                 <Text style={styles.toggleLabel}>Low-Battery Voice Warning</Text>
                 <Switch
-                  value={preferences.batteryAlertsEnabled}
+                  value={preferences?.batteryAlertsEnabled ?? true}
                   onValueChange={(val) => onUpdatePreferences({ batteryAlertsEnabled: val })}
-                  trackColor={{ false: '#333338', true: COLORS.brandRed }}
+                  trackColor={{ false: '#262933', true: COLORS.brandRed }}
                   thumbColor={COLORS.textPrimary}
                 />
               </View>
             </View>
 
-            {/* 4. Notification Listener Permissions */}
+            {/* 5. Gemini 2.5 Flash AI API */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Bell size={20} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>NOTIFICATION READER</Text>
+                <Sparkles size={18} color={COLORS.brandRed} />
+                <Text style={styles.sectionTitle}>GEMINI 2.5 FLASH AI</Text>
               </View>
               <Text style={styles.sectionDescription}>
-                Allow My Bro to read important WhatsApp, SMS, and incoming call alerts aloud.
-              </Text>
-              <TouchableOpacity
-                onPress={handleOpenNotificationSettings}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Open Android notification access settings"
-                style={styles.permButton}
-              >
-                <Shield size={18} color={COLORS.textPrimary} />
-                <Text style={styles.permButtonText}>NOTIFICATION PERMISSION</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* 5. AI Brain & Models */}
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <Sparkles size={20} color={COLORS.brandRed} />
-                <Text style={styles.sectionTitle}>GEMINI AI MODEL / API</Text>
-              </View>
-              <Text style={styles.sectionDescription}>
-                Optionally connect your Google Gemini API key for ultra-humanized intelligence, deep understanding, and witty conversation.
+                Connect Google Gemini 2.5 Flash for ultra-fast, conversational AI responses.
               </Text>
               <TextInput
                 value={apiKeyInput}
                 onChangeText={setApiKeyInput}
                 placeholder="Paste Gemini API Key (AIzaSy...)"
-                placeholderTextColor="#666670"
+                placeholderTextColor="#64748B"
                 style={styles.keyInput}
                 secureTextEntry
                 accessible={true}
@@ -225,11 +258,41 @@ export function QuickSettingsModal({
               </TouchableOpacity>
             </View>
 
-            {/* 6. Reminders Manager */}
-            {onOpenReminders ? (
+            {/* 6. Guardian Emergency Phone */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Shield size={18} color={COLORS.brandRed} />
+                <Text style={styles.sectionTitle}>GUARDIAN EMERGENCY PHONE</Text>
+              </View>
+              <Text style={styles.sectionDescription}>
+                Number dialed automatically when you say "call guardian" or if a fall is detected.
+              </Text>
+              <TextInput
+                value={guardianPhoneInput}
+                onChangeText={setGuardianPhoneInput}
+                placeholder="Guardian Phone (+91 9876543210)"
+                placeholderTextColor="#64748B"
+                style={styles.keyInput}
+                keyboardType="phone-pad"
+                accessible={true}
+                accessibilityLabel="Guardian phone number input"
+              />
+              <TouchableOpacity
+                onPress={handleSaveGuardianPhone}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Save guardian contact"
+                style={styles.saveKeyButton}
+              >
+                <Text style={styles.saveKeyButtonText}>SAVE GUARDIAN NUMBER</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 7. Reminders Manager Link */}
+            {onOpenReminders && (
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Calendar size={20} color={COLORS.brandRed} />
+                  <Calendar size={18} color={COLORS.brandRed} />
                   <Text style={styles.sectionTitle}>SAVED REMINDERS</Text>
                 </View>
                 <TouchableOpacity
@@ -240,12 +303,12 @@ export function QuickSettingsModal({
                   accessible={true}
                   accessibilityRole="button"
                   accessibilityLabel="View and manage saved reminders"
-                  style={styles.permButton}
+                  style={styles.permButtonSecondary}
                 >
-                  <Text style={styles.permButtonText}>VIEW SAVED REMINDERS</Text>
+                  <Text style={styles.permButtonSecondaryText}>VIEW ALL REMINDERS</Text>
                 </TouchableOpacity>
               </View>
-            ) : null}
+            )}
           </ScrollView>
         </View>
       </View>
@@ -256,7 +319,7 @@ export function QuickSettingsModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.88)',
+    backgroundColor: 'rgba(0,0,0,0.92)',
     justifyContent: 'flex-end',
   },
   container: {
@@ -265,14 +328,14 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     borderWidth: 2,
     borderColor: COLORS.surfaceBorder,
-    maxHeight: '85%',
+    maxHeight: '88%',
     padding: 24,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   titleRow: {
     flexDirection: 'row',
@@ -289,18 +352,20 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#202026',
+    backgroundColor: COLORS.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.surfaceBorder,
   },
   scrollContent: {
     gap: 16,
-    paddingBottom: 24,
+    paddingBottom: 28,
   },
   sectionCard: {
-    backgroundColor: '#18181C',
+    backgroundColor: COLORS.surfaceElevated,
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
     borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
   },
@@ -308,19 +373,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.brandRed,
     letterSpacing: 1.2,
   },
   sectionDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
     marginBottom: 12,
-    lineHeight: 20,
+    lineHeight: 18,
+  },
+  buttonStack: {
+    gap: 10,
   },
   optionRow: {
     flexDirection: 'row',
@@ -328,9 +396,9 @@ const styles = StyleSheet.create({
   },
   choiceButton: {
     flex: 1,
-    height: 48,
+    height: 46,
     borderRadius: 12,
-    backgroundColor: '#121214',
+    backgroundColor: COLORS.surface,
     borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
     alignItems: 'center',
@@ -341,7 +409,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brandRedDark,
   },
   choiceText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: COLORS.textMuted,
   },
@@ -359,7 +427,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brandRedDark,
   },
   testVoiceText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     color: COLORS.brandRed,
     letterSpacing: 1,
@@ -370,52 +438,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#26262E',
+    borderBottomColor: '#1E222D',
   },
   toggleLabel: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.textPrimary,
   },
   permButton: {
+    backgroundColor: COLORS.brandRed,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     height: 50,
-    borderRadius: 12,
+    borderRadius: 14,
+  },
+  permButtonText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.8,
+  },
+  permButtonSecondary: {
+    backgroundColor: COLORS.surface,
     borderWidth: 1.5,
     borderColor: COLORS.brandRed,
-    backgroundColor: COLORS.brandRedDark,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 14,
+  },
+  permButtonSecondaryText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: COLORS.brandRed,
+    letterSpacing: 0.8,
   },
   keyInput: {
-    backgroundColor: '#0F0F12',
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: COLORS.surfaceBorder,
     color: COLORS.textPrimary,
     paddingHorizontal: 14,
     height: 48,
-    fontSize: 14,
+    fontSize: 13,
     marginBottom: 10,
   },
   saveKeyButton: {
     height: 44,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: COLORS.brandRed,
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveKeyButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 1,
-  },
-  permButtonText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: COLORS.textPrimary,
     letterSpacing: 1,
   },
 });

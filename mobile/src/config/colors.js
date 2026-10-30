@@ -1,17 +1,19 @@
+// Bro Assistant Design System Tokens
+// Inspired by Linear, Apple HIG, and Raycast - Engineered for maximum low-vision accessibility (21:1 Contrast)
 export const COLORS = {
-  canvas: '#000000',           // Pure OLED Black
-  surface: '#121214',          // Deep Card Surface
-  surfaceElevated: '#1C1C20',  // Raised Card Surface
-  surfaceBorder: '#2E2E36',    // High-Contrast Structural Border
-  textPrimary: '#FFFFFF',      // Maximum Luminance White (21:1 on Black)
-  textSecondary: '#E2E2E8',    // Off-white Secondary Text
-  textMuted: '#9494A0',        // Accessible Muted Text (7:1 on Black)
-  brandRed: '#FF2E2E',         // ShortFundly Signature Electric Red
-  brandRedDark: '#2C0808',     // Red Glow / Background Tint
-  accentRed: '#FF4747',        // Active Mic / Wake Word Highlight
-  accentCyan: '#00E5FF',       // Web Search / Processing Highlight
-  success: '#00E676',          // Confirmation & Connected State
-  warning: '#FF9100',          // Battery Warning State
-  danger: '#FF2E2E',           // Error / Cancellation State
-  ripple: 'rgba(255, 46, 46, 0.25)',
+  canvas: '#060709',            // Infinite Deep Obsidian Canvas
+  surface: '#0E1015',           // Matte Card Surface
+  surfaceElevated: '#161922',   // Elevated Tactile Container
+  surfaceBorder: '#232836',     // Architectural High-Contrast Boundary
+  textPrimary: '#FFFFFF',       // 100% Pure Luminance White (21:1 on Black)
+  textSecondary: '#CBD5E1',     // High-Legibility Off-White (14:1)
+  textMuted: '#94A3B8',         // Compliant Accessible Steel Gray (7:1)
+  brandRed: '#FF3B30',          // Electric Vivid Crimson (Primary Accent)
+  brandRedDark: '#200707',      // Deep Subdued Crimson Aura
+  accentRed: '#FF453A',         // Active Microphone Pulse
+  accentCyan: '#38BDF8',        // Acoustic Thinking Indicator
+  success: '#10B981',           // Emerald Affirmation
+  warning: '#F59E0B',           // Amber Safety Caution
+  danger: '#EF4444',            // Emergency Crimson
+  ripple: 'rgba(255, 59, 48, 0.25)',
 };

@@ -137,6 +137,9 @@ export function useVoiceAssistant() {
     }
   }, []);
 
+  const isWakeGreetingRef = useRef(false);
+  const hasAnnouncedStartupRef = useRef(false);
+
   // Initialize Speech listener, Battery monitor, and Wake word
   useEffect(() => {
     // 1. Speech listener to sync assistant speaking state
@@ -144,8 +147,12 @@ export function useVoiceAssistant() {
       if (isSpeaking) {
         setState(ASSISTANT_STATE.SPEAKING);
       } else if (stateRef.current === ASSISTANT_STATE.SPEAKING) {
-        if (pendingActionRef.current) {
-          // Immediately listen for voice confirmation ("Yes" / "No")
+        if (isWakeGreetingRef.current) {
+          isWakeGreetingRef.current = false;
+          // Wake greeting finished speaking! Automatically open mic for hands-free command
+          startListening();
+        } else if (pendingActionRef.current) {
+          // Immediately listen for voice confirmation ("Yes" / "No") hands-free
           setState(ASSISTANT_STATE.AWAITING_CONFIRMATION);
           startListening();
         } else {
@@ -164,12 +171,11 @@ export function useVoiceAssistant() {
     });
     BatteryService.startMonitor(({ percentage }) => {
       setBatteryLevel(percentage);
-    });
+    }, preferences.language);
 
     // 3. Wake Word Service callbacks
     WakeWordService.setCallback(() => {
-      // Once wake greeting finishes, open listening for command
-      startListening();
+      isWakeGreetingRef.current = true;
     });
     WakeWordService.setCommandCallback((command) => {
       processUtterance(command);
@@ -177,6 +183,16 @@ export function useVoiceAssistant() {
 
     if (preferences.wakeWordEnabled) {
       WakeWordService.startService(preferences.language);
+    }
+
+    // 4. Initial hands-free startup announcement
+    if (!hasAnnouncedStartupRef.current) {
+      hasAnnouncedStartupRef.current = true;
+      const lang = preferences.language;
+      const readyMsg = lang === 'ta'
+        ? 'ஹே ப்ரோ செயலில் உள்ளது. நீங்கள் எப்போது வேண்டுமானாலும் ஹே ப்ரோ என்று அழைக்கலாம்.'
+        : "Hey Bro is ready in hands-free mode. Just say 'Hey Bro' anytime to speak.";
+      SpeechService.speak(readyMsg, { preferredLang: lang });
     }
 
     // 4. Speech Recognition result listener with 1500ms silence pause detection

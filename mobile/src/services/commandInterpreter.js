@@ -9,6 +9,15 @@ import { InternetSearchService } from './internetSearchService';
 import { AIService } from './aiService';
 import { SpeechService } from './speechService';
 import { HapticService } from './hapticService';
+import { MedicalCareService } from './medicalCareService';
+import { TaskTrackerService } from './taskTrackerService';
+import { GuardianBridgeService } from './guardianBridgeService';
+import { SystemScheduleService } from './systemScheduleService';
+import { AssistantORM } from './assistantORM';
+import { SpatialVisionService } from './spatialVisionService';
+import { FallSafetyService } from './fallSafetyService';
+import { HapticCompassService } from './hapticCompassService';
+import { DailyExecutiveBriefing } from './dailyExecutiveBriefing';
 
 export const CommandInterpreter = {
   async processCommand(query, context = {}) {
@@ -111,7 +120,31 @@ export const CommandInterpreter = {
       return { success: res.success, intent: 'BATTERY_STATUS', reply: res.reply };
     }
 
-    // 4. Notification Reader Intent
+    // 4. Notification Reader & Management Intent
+    // 4a. Discreet / Private Mode Toggle ("turn on discreet mode", "enable private notifications", "privacy mode")
+    if (
+      clean.includes('discreet mode') ||
+      clean.includes('private mode') ||
+      clean.includes('privacy mode') ||
+      clean.includes('ரகசிய முறை') ||
+      clean.includes('ரகசிய அறிவிப்பு')
+    ) {
+      const enable = !clean.includes('off') && !clean.includes('disable') && !clean.includes('stop');
+      const discRes = await NotificationReaderService.toggleDiscreetMode(enable, language);
+      return { success: true, intent: 'TOGGLE_DISCREET_MODE', reply: discRes.reply };
+    }
+
+    // 4b. Read Private Messages Explicit Intent ("read private message", "read private", "read secret message")
+    if (
+      clean.includes('read private') ||
+      clean.includes('private message') ||
+      clean.includes('ரகசிய செய்தி') ||
+      clean.includes('ரகசியத்தை படி')
+    ) {
+      const res = await NotificationReaderService.readNotifications(language, true);
+      return { success: res.success, intent: 'READ_PRIVATE_NOTIFICATIONS', reply: res.reply };
+    }
+
     if (
       clean.includes('notification') ||
       clean.includes('notifications') ||
@@ -124,11 +157,17 @@ export const CommandInterpreter = {
       clean.includes('whats up message') ||
       clean.includes('whatsapp message')
     ) {
+      // Check if user is enabling/disabling/listing notification apps
+      const mgmtRes = await NotificationReaderService.handleVoiceManagement(raw, language);
+      if (mgmtRes) {
+        return { success: true, intent: 'MANAGE_NOTIFICATIONS', reply: mgmtRes.reply };
+      }
+
       const res = await NotificationReaderService.readNotifications(language);
       return { success: res.success, intent: 'READ_NOTIFICATIONS', reply: res.reply };
     }
 
-    // 5. Reminders Intent
+    // 5. Reminders Intent (Integrated with Encrypted ORM & Schedule Clash Prevention)
     if (
       /(?:what are my reminders|list reminders|show reminders|any reminders|நினைவூட்டல்கள்)/i.test(clean)
     ) {
@@ -142,10 +181,352 @@ export const CommandInterpreter = {
       clean.includes('ஞாபகப்படுத்து')
     ) {
       const res = await ReminderService.addReminder(raw, language);
+      if (res.success && res.reminder) {
+        // Also register with ORM clash engine
+        await AssistantORM.scheduleSmartEvent({
+          title: res.reminder.title,
+          startTime: res.reminder.scheduledFor,
+          category: 'reminder',
+        });
+      }
       return { success: res.success, intent: 'CREATE_REMINDER', reply: res.reply };
     }
 
-    // 6. Calls & Direct Voice Dialing
+    // 5b. Medical Prescriptions & Pill Tracker
+    if (
+      clean.includes('add medicine') ||
+      clean.includes('add tablet') ||
+      clean.includes('remind tablet') ||
+      clean.includes('மருந்து சேர்') ||
+      clean.includes('மாத்திரை சேர்')
+    ) {
+      const res = await MedicalCareService.addMedicine(raw, language);
+      return { success: res.success, intent: 'ADD_MEDICINE', reply: res.reply };
+    }
+
+    if (
+      clean.includes('took medicine') ||
+      clean.includes('took tablet') ||
+      clean.includes('taken medicine') ||
+      clean.includes('taken tablet') ||
+      clean.includes('மாத்திரை சாப்பிட்டேன்') ||
+      clean.includes('மருந்து சாப்பிட்டேன்')
+    ) {
+      const res = await MedicalCareService.markMedicineTaken(raw, language);
+      return { success: res.success, intent: 'MARK_MEDICINE_TAKEN', reply: res.reply };
+    }
+
+    if (
+      clean.includes('check medicine') ||
+      clean.includes('my medicines') ||
+      clean.includes('any tablets') ||
+      clean.includes('மருந்துகள் என்ன')
+    ) {
+      const res = await MedicalCareService.checkPrescriptionsStatus(language);
+      return { success: res.success, intent: 'CHECK_MEDICINES', reply: res.reply };
+    }
+
+    // 5c. Hydration (Water Drinking) Tracker
+    if (
+      clean.includes('drank water') ||
+      clean.includes('drink water') ||
+      clean.includes('had water') ||
+      clean.includes('glass of water') ||
+      clean.includes('தண்ணீர் குடித்தேன்') ||
+      clean.includes('தண்ணி குடிச்சேன்')
+    ) {
+      const res = await MedicalCareService.logWaterGlass(1, language);
+      return { success: res.success, intent: 'LOG_WATER', reply: res.reply };
+    }
+
+    if (
+      clean.includes('water status') ||
+      clean.includes('how much water') ||
+      clean.includes('water goal') ||
+      clean.includes('தண்ணீர் அளவு')
+    ) {
+      const res = await MedicalCareService.announceHydrationStatus(language);
+      return { success: res.success, intent: 'WATER_STATUS', reply: res.reply };
+    }
+
+    // 5d. Meal & Lunch Routine Inquiries
+    if (
+      clean.includes('lunch time') ||
+      clean.includes('meal time') ||
+      clean.includes('dinner time') ||
+      clean.includes('சாப்பாடு நேரம்') ||
+      clean.includes('மதிய உணவு')
+    ) {
+      const res = MedicalCareService.getMealStatus(language);
+      await SpeechService.speak(res.reply, { preferredLang: language });
+      return { success: true, intent: 'MEAL_STATUS', reply: res.reply };
+    }
+
+    // 5e. Voice Tasks & To-Do Tracker
+    if (
+      clean.startsWith('add task') ||
+      clean.startsWith('new task') ||
+      clean.startsWith('add to do') ||
+      clean.includes('பணி சேர்') ||
+      clean.includes('task list la podu')
+    ) {
+      const res = await TaskTrackerService.addTask(raw, language);
+      return { success: res.success, intent: 'ADD_TASK', reply: res.reply };
+    }
+
+    if (
+      clean.includes('what are my tasks') ||
+      clean.includes('my tasks') ||
+      clean.includes('to do list') ||
+      clean.includes('todo list') ||
+      clean.includes('வேலைகள் என்ன')
+    ) {
+      const res = await TaskTrackerService.readTasks(language);
+      return { success: res.success, intent: 'READ_TASKS', reply: res.reply };
+    }
+
+    if (
+      clean.includes('task done') ||
+      clean.includes('completed task') ||
+      clean.includes('mark task') ||
+      clean.includes('வேலை முடிந்தது')
+    ) {
+      const res = await TaskTrackerService.markTaskDone(raw, language);
+      return { success: res.success, intent: 'MARK_TASK_DONE', reply: res.reply };
+    }
+
+    // 5f. Native System Alarms & Timers
+    if (
+      clean.includes('set alarm') ||
+      clean.includes('alarm for') ||
+      clean.includes('அலாரம் வை') ||
+      clean.includes('alarm vai')
+    ) {
+      const res = await SystemScheduleService.setAlarm(raw, language);
+      return { success: res.success, intent: 'SET_ALARM', reply: res.reply };
+    }
+
+    if (
+      clean.includes('set timer') ||
+      clean.includes('start timer') ||
+      clean.includes('டைமர்') ||
+      clean.includes('timer vai')
+    ) {
+      const res = await SystemScheduleService.setTimer(raw, language);
+      return { success: res.success, intent: 'SET_TIMER', reply: res.reply };
+    }
+
+    // 5g. Native Calendar Date Marking
+    if (
+      clean.includes('mark calendar') ||
+      clean.includes('mark date') ||
+      clean.includes('add event') ||
+      clean.includes('நாள்காட்டி') ||
+      clean.includes('தேதி குறி')
+    ) {
+      const res = await SystemScheduleService.markCalendarEvent(raw, language);
+      return { success: res.success, intent: 'MARK_CALENDAR', reply: res.reply };
+    }
+
+    // 5h. Remote Guardian Errand Request ("tell guardian I need groceries", "ask guardian to buy medicine")
+    if (
+      clean.includes('tell guardian') ||
+      clean.includes('ask guardian') ||
+      clean.includes('message guardian') ||
+      clean.includes('காப்பாளருக்கு சொல்') ||
+      clean.includes('பொருட்கள் வாங்க')
+    ) {
+      const res = await GuardianBridgeService.requestGuardianErrand(raw, language);
+      return { success: res.success, intent: 'GUARDIAN_ERRAND', reply: res.reply };
+    }
+
+    // 5i. Neighbor Hotline ("call neighbor", "call house owner", "பக்கத்து வீடு")
+    if (
+      clean.includes('call neighbor') ||
+      clean.includes('call neighbour') ||
+      clean.includes('call house owner') ||
+      clean.includes('பக்கத்து வீட்டுக்கு கால்') ||
+      clean.includes('neighbor ku call')
+    ) {
+      const res = await GuardianBridgeService.callNeighbor(language);
+      return { success: res.success, intent: 'CALL_NEIGHBOR', reply: res.reply };
+    }
+
+    // 5j. Assistant "Learn Mode" & Memory Recall ("remember that my doctor is Dr. Ramesh", "what did I tell you about doctor")
+    if (
+      clean.startsWith('remember that ') ||
+      clean.startsWith('learn that ') ||
+      clean.startsWith('note that ') ||
+      clean.includes('நினைவில் வைத்துக்கொள்')
+    ) {
+      const toLearn = clean.replace(/^(?:remember that|learn that|note that)\s+/i, '').trim();
+      const parts = toLearn.split(/\s+(?:is|are|was|as)\s+/i);
+      const key = parts[0] || 'note';
+      const val = parts[1] || toLearn;
+      await AssistantORM.storeMemory(key, val, 'learned_fact');
+      HapticService.onSuccess();
+      const reply = language === 'ta'
+        ? `புரிந்தது ப்ரோ! "${key}" பற்றிய தகவலை பாதுகாப்பாக குறித்துக்கொண்டேன்.`
+        : `Got it, bro! I have securely encrypted and remembered that ${key} is ${val}.`;
+      await SpeechService.speak(reply, { preferredLang: language });
+      return { success: true, intent: 'LEARN_MEMORY', reply };
+    }
+
+    if (
+      clean.startsWith('what is my ') ||
+      clean.startsWith('who is my ') ||
+      clean.startsWith('where is my ') ||
+      clean.includes('எனக்கு ஞாபகப்படுத்து')
+    ) {
+      const recalled = await AssistantORM.recallMemory(clean);
+      if (recalled) {
+        const reply = language === 'ta'
+          ? `எனக்கு நினைவிருக்கிறது ப்ரோ: ${recalled}.`
+          : `I remember you told me, bro: ${recalled}.`;
+        await SpeechService.speak(reply, { preferredLang: language });
+        return { success: true, intent: 'RECALL_MEMORY', reply };
+      }
+    }
+
+    // 5k. Trigger Native Voice AI Mode (Google Assistant / Gemini / ChatGPT Voice)
+    if (
+      clean.includes('trigger gemini') ||
+      clean.includes('ask google') ||
+      clean.includes('open gemini voice') ||
+      clean.includes('கூகிள் உதவியாளர்')
+    ) {
+      const res = await SystemScheduleService.triggerNativeVoiceAI('gemini', language);
+      return { success: res.success, intent: 'TRIGGER_GEMINI', reply: res.reply };
+    }
+
+    if (
+      clean.includes('chatgpt voice') ||
+      clean.includes('open chatgpt') ||
+      clean.includes('talk to chatgpt')
+    ) {
+      const res = await SystemScheduleService.triggerNativeVoiceAI('chatgpt', language);
+      return { success: res.success, intent: 'TRIGGER_CHATGPT', reply: res.reply };
+    }
+
+    // 5l. Indian Currency Note Identification ("check money", "what note is this?", "check currency", "பணம் என்ன நோட்டு")
+    if (
+      clean.includes('check money') ||
+      clean.includes('what note is this') ||
+      clean.includes('identify note') ||
+      clean.includes('read currency') ||
+      clean.includes('check currency') ||
+      clean.includes('ரூபாய் நோட்டு') ||
+      clean.includes('பணம் என்ன')
+    ) {
+      const res = await SpatialVisionService.identifyCurrencyNote(language);
+      return { success: res.success, intent: 'IDENTIFY_CURRENCY', reply: res.reply };
+    }
+
+    // 5m. Medicine Box / Document OCR Reader ("read medicine strip", "read paper", "read document", "ஆவணம் படி")
+    if (
+      clean.includes('read medicine') ||
+      clean.includes('read paper') ||
+      clean.includes('read document') ||
+      clean.includes('read label') ||
+      clean.includes('ஆவணம் படி') ||
+      clean.includes('அட்டை படி')
+    ) {
+      const res = await SpatialVisionService.readDocumentOrMedicine(language);
+      return { success: res.success, intent: 'READ_DOCUMENT', reply: res.reply };
+    }
+
+    // 5n. Scene & Obstacle Description ("what is in front of me", "describe surroundings", "எதிரே என்ன உள்ளது")
+    if (
+      clean.includes('in front of me') ||
+      clean.includes('describe surroundings') ||
+      clean.includes('what is ahead') ||
+      clean.includes('எதிரே என்ன') ||
+      clean.includes('முன்னாடி என்ன இருக்கு')
+    ) {
+      const res = await SpatialVisionService.describeScene(language);
+      return { success: res.success, intent: 'DESCRIBE_SCENE', reply: res.reply };
+    }
+
+    // 5o. Fall Alert Cancellation ("i am fine", "i am okay", "cancel fall", "நான் நலமாக உள்ளேன்")
+    if (
+      clean.includes('i am fine') ||
+      clean.includes('i am okay') ||
+      clean.includes('cancel fall') ||
+      clean.includes('நான் நலம்') ||
+      clean.includes('நல்லா இருக்கேன்')
+    ) {
+      const res = FallSafetyService.cancelFallAlert(language);
+      return { success: res.success, intent: 'CANCEL_FALL_ALERT', reply: res.reply };
+    }
+
+    // 5p. Spatial Compass Heading ("which direction am I facing", "which way", "compass", "திசை என்ன")
+    if (
+      clean.includes('which direction') ||
+      clean.includes('which way') ||
+      clean.includes('compass') ||
+      clean.includes('facing') ||
+      clean.includes('திசை என்ன') ||
+      clean.includes('எந்த திசை')
+    ) {
+      const res = await HapticCompassService.announceHeading(language);
+      return { success: res.success, intent: 'COMPASS_HEADING', reply: res.reply };
+    }
+
+    // 5q. Proactive Daily Executive Briefing ("morning briefing", "daily briefing", "evening wrap up", "காலை சுருக்கம்")
+    if (
+      clean.includes('morning briefing') ||
+      clean.includes('daily briefing') ||
+      clean.includes('today summary') ||
+      clean.includes('காலை அறிக்கை')
+    ) {
+      const res = await DailyExecutiveBriefing.provideMorningBriefing(language, backendUrl);
+      return { success: res.success, intent: 'MORNING_BRIEFING', reply: res.briefing };
+    }
+
+    if (
+      clean.includes('evening wrap up') ||
+      clean.includes('night briefing') ||
+      clean.includes('bedtime check') ||
+      clean.includes('இரவு சுருக்கம்')
+    ) {
+      const res = await DailyExecutiveBriefing.provideEveningWrapup(language);
+      return { success: res.success, intent: 'EVENING_WRAPUP', reply: res.wrapup };
+    }
+
+    // 6a. Emergency & Guardian Voice Trigger
+    if (
+      clean === 'emergency' ||
+      clean.includes('emergency call') ||
+      clean.includes('call guardian') ||
+      clean.includes('call my guardian') ||
+      clean.includes('help me call guardian') ||
+      clean.includes('காப்பாளர்') ||
+      clean.includes('அவசரம்')
+    ) {
+      const guardian = (await CallMessageService.lookupContact('guardian')) || (await CallMessageService.lookupContact('emergency'));
+      if (guardian && guardian.phoneNumber) {
+        const reply = language === 'ta'
+          ? 'அவசர உதவி! உங்கள் காப்பாளரை உடனே அழைக்கிறேன்.'
+          : 'Emergency triggered! Calling your guardian immediately, bro.';
+        await SpeechService.speak(reply, { preferredLang: language });
+        await CallMessageService.executeCall({ target: 'Guardian', phoneNumber: guardian.phoneNumber });
+        return { success: true, intent: 'EMERGENCY_CALL', reply, clearPending: true };
+      } else {
+        const askReply = language === 'ta'
+          ? 'காப்பாளர் எண் இன்னும் அமைக்கப்படவில்லை ப்ரோ. தயவுசெய்து எண்களை சொல்லவும்.'
+          : 'Guardian emergency number is not configured yet. Say the phone number to call.';
+        await SpeechService.speak(askReply, { preferredLang: language });
+        return {
+          success: true,
+          intent: 'ASK_PHONE_NUMBER',
+          requiresConfirmation: true,
+          pendingAction: { type: 'PROVIDE_PHONE_NUMBER', payload: { target: 'Guardian' } },
+          reply: askReply,
+        };
+      }
+    }
+
+    // 6b. Calls & Direct Voice Dialing
     const callIntent = CallMessageService.parseCallIntent(raw);
     if (callIntent) {
       const target = callIntent.target;
@@ -205,6 +586,18 @@ export const CommandInterpreter = {
         await SpeechService.speak(reply, { preferredLang: language });
         return { success: true, intent: 'SAVE_CONTACT', reply };
       }
+    }
+
+    // 6c. Automatic Voice Note Recording & Sending ("send a voice message to Suresh", "voice note to Mommy")
+    if (
+      clean.includes('voice message') ||
+      clean.includes('voice note') ||
+      clean.includes('குரல் செய்தி')
+    ) {
+      const match = clean.match(/(?:voice message|voice note|குரல் செய்தி)(?:\s+to)?\s+([a-zA-Z\s]+)/i);
+      const recipient = match ? match[1].trim() : 'contact';
+      const res = await CallMessageService.sendVoiceNote(recipient, language);
+      return { success: res.success, intent: 'SEND_VOICE_NOTE', reply: res.reply };
     }
 
     // 6b. Message / SMS / WhatsApp intent
@@ -319,13 +712,62 @@ export const CommandInterpreter = {
       return { success: res.success, intent: 'WEB_SEARCH', reply: res.reply, sources: res.sources };
     }
 
-    // 12. Conversational Intelligence & Humanized Companion (Gemini / AI Service)
+    // 11b. Read More Web Content Intent
+    if (
+      clean === 'read more' ||
+      clean === 'tell me more' ||
+      clean === 'read article' ||
+      clean === 'read full' ||
+      clean.includes('continue reading') ||
+      clean.includes('innum sollu') ||
+      clean.includes('மேலும் படி')
+    ) {
+      const res = await InternetSearchService.readMore(language);
+      return { success: res.success, intent: 'READ_MORE', reply: res.reply };
+    }
+
+    // 12. Help & Voice Accessibility Orientation
+    if (
+      clean === 'help' ||
+      clean.includes('what can you do') ||
+      clean.includes('where am i') ||
+      clean.includes('voice commands') ||
+      clean.includes('accessibility') ||
+      clean.includes('how to use') ||
+      clean.includes('உதவி') ||
+      clean.includes('enna panna mudiyum')
+    ) {
+      let helpReply = (
+        "Hey bro! Here is your complete accessibility guide: " +
+        "You can press and hold anywhere on the screen to talk, double-tap to repeat, or tap to stop me. " +
+        "For Health: say 'Add medicine Paracetamol at 8 PM', 'Check my medicines', or 'Drank a glass of water'. " +
+        "For Privacy: say 'Enable discreet mode' to keep notifications private in public, or 'Read private message' when alone. " +
+        "For Daily Tasks: say 'Add task buy milk', 'What are my tasks', or 'Set alarm for 6 AM'. " +
+        "For Family: say 'Tell guardian I need groceries', 'Call neighbor', or 'Voice message to Suresh'. " +
+        "You can also say 'Ask Google' or 'Open ChatGPT voice' anytime!"
+      );
+      if (language === 'ta') {
+        helpReply = (
+          "வணக்கம் ப்ரோ! உங்கள் முழு குரல் வழிகாட்டி: " +
+          "மருத்துவத்திற்கு: 'மாத்திரை சேர் பாராசிட்டமால் இரவு 8 மணிக்கு', 'தண்ணீர் குடித்தேன்'. " +
+          "ரகசிய பாதுகாப்பிற்கு: 'ரகசிய முறை இயக்கு' அல்லது 'ரகசிய செய்தியை படி'. " +
+          "பணிகளுக்கு: 'பணி சேர் பால் வாங்க வேண்டும்', 'அலாரம் வை காலை 6 மணிக்கு'. " +
+          "காப்பாளர் மற்றும் பக்கத்து வீட்டிற்கு: 'காப்பாளருக்கு சொல் மளிகை வேண்டும்', 'பக்கத்து வீட்டுக்கு கால் பண்ணு', 'குரல் செய்தி சுரேஷுக்கு'. " +
+          "நீங்கள் 'கூகிள் உதவியாளர்' அல்லது 'சாட் ஜிபிடி' என்றும் அழைக்கலாம்!"
+        );
+      }
+      HapticService.onSuccess();
+      await SpeechService.speak(helpReply, { preferredLang: language });
+      return { success: true, intent: 'HELP_ORIENTATION', reply: helpReply };
+    }
+
+    // 13. Conversational Intelligence & Humanized Companion (Gemini / AI Service)
     const aiRes = await AIService.askBro(raw, language);
     if (aiRes && aiRes.reply) {
       return { success: aiRes.success, intent: 'AI_COMPANION', reply: aiRes.reply };
     }
 
-    // 13. Universal Fallback
+    // 14. Universal Fallback
     const defaultReply = language === 'ta'
       ? 'மன்னிக்கவும் ப்ரோ, அது எனக்கு புரியவில்லை. "உதவி" அல்லது "பேட்டரி" என்று கூறி முயற்சிக்கவும்.'
       : 'I did not catch that, bro. You can ask for battery, call a contact, open an app, or ask me any question.';

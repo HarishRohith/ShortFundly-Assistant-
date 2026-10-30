@@ -38,10 +38,10 @@ class GeminiAIService {
       return { success: false, reply: offlineMsg };
     }
 
-    // 1. If Gemini API key is configured, query Gemini 2.0 / 1.5 Flash
+    // 1. If Gemini API key is configured, query Gemini 2.5 Flash
     if (this.hasApiKey()) {
       try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`;
+        let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`;
         const body = {
           system_instruction: {
             parts: [{ text: BRO_SYSTEM_PROMPT }],
@@ -58,21 +58,31 @@ class GeminiAIService {
           },
         };
 
-        const res = await fetch(endpoint, {
+        let res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
 
+        // Fallback to gemini-2.0-flash if 2.5 endpoint responds with error
+        if (!res.ok) {
+          endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`;
+          res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        }
+
         if (res.ok) {
           const data = await res.json();
           let reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (reply) {
-            // Clean any leftover markdown
+            // Clean any leftover markdown, bullets, emojis
             reply = reply.replace(/[*_#`~[\]]/g, '').trim();
             HapticService.onSuccess();
             await SpeechService.speak(reply, { preferredLang: language });
-            return { success: true, reply, provider: 'Gemini' };
+            return { success: true, reply, provider: 'Gemini 2.5 Flash' };
           }
         }
       } catch (err) {

@@ -58,12 +58,13 @@ export const InternetSearchService = {
       if (wikiRes.ok) {
         const wikiData = await wikiRes.json();
         if (wikiData.extract) {
+          this.lastDetailedContent = wikiData.extract;
           let summary = wikiData.extract;
-          // Keep to 2-3 sentences max for speech
+          // Keep to 2-3 sentences max for initial speech
           const sentences = summary.split(/(?<=[.?!])\s+/);
           const shortSummary = sentences.slice(0, 3).join(' ');
 
-          const reply = `According to Wikipedia: ${shortSummary}`;
+          const reply = `According to Wikipedia: ${shortSummary}. Say "read more" if you would like me to read the full article.`;
           HapticService.onSuccess();
           await SpeechService.speak(reply, { preferredLang: language });
           return {
@@ -107,5 +108,21 @@ export const InternetSearchService = {
       success: false,
       reply: fallbackReply,
     };
+  },
+
+  // Read full article / expanded content aloud
+  async readMore(language = 'en') {
+    if (this.lastDetailedContent) {
+      HapticService.onSuccess();
+      const intro = language === 'ta' ? 'கூடுதல் விவரங்கள்: ' : 'Reading the full summary: ';
+      const fullText = intro + this.lastDetailedContent;
+      await SpeechService.speak(fullText, { preferredLang: language });
+      return { success: true, reply: fullText };
+    }
+    const noMore = language === 'ta'
+      ? 'படிக்க கூடுதல் விவரங்கள் எதுவும் இல்லை ப்ரோ.'
+      : 'There is no additional search content to read, bro.';
+    await SpeechService.speak(noMore, { preferredLang: language });
+    return { success: false, reply: noMore };
   },
 };

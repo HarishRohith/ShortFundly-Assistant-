@@ -89,7 +89,7 @@ class BatteryManager {
   }
 
   // Start background monitoring for low battery alerts
-  startMonitor(onAlert) {
+  startMonitor(onAlert, language = 'en') {
     if (this.subscription) return;
 
     try {
@@ -98,6 +98,19 @@ class BatteryManager {
           const percentage = Math.round(batteryLevel * 100);
           this.lastKnownLevel = percentage;
           if (onAlert) onAlert({ percentage });
+
+          // Proactive spoken alert when dropping to or below 20%
+          if (percentage <= 20 && !this.hasWarnedLow && !this.isCharging) {
+            this.hasWarnedLow = true;
+            HapticService.onLowBatteryAlert();
+            let alertMsg = `Warning bro: battery has dropped to ${percentage} percent. Please plug in your charger.`;
+            if (language === 'ta') {
+              alertMsg = `எச்சரிக்கை ப்ரோ: பேட்டரி ${percentage} சதவீதமாக குறைந்துவிட்டது. உடனே சார்ஜரை இணைக்கவும்.`;
+            }
+            await SpeechService.speak(alertMsg, { preferredLang: language });
+          } else if (percentage > 25) {
+            this.hasWarnedLow = false;
+          }
         }
       });
     } catch (e) {}

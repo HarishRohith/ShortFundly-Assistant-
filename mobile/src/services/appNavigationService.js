@@ -22,6 +22,21 @@ export const AppNavigationService = {
       gmail: ['gmail', 'email', 'mail', 'ஜிமெயில்', 'மின்னஞ்சல்'],
       spotify: ['spotify', 'music', 'songs', 'ஸ்பாட்டிஃபை', 'பாட்டு'],
       calculator: ['calculator', 'calc', 'கால்குலேட்டர்', 'கணக்கீடு'],
+      gpay: ['gpay', 'google pay', 'g pay', 'கூகிள் பே', 'பணம் அனுப்பு'],
+      phonepe: ['phonepe', 'phone pe', 'போன்பே'],
+      paytm: ['paytm', 'pay tm', 'பேடிஎம்'],
+      uber: ['uber', 'யூபர்', 'டாக்ஸி'],
+      ola: ['ola', 'ola cabs', 'ஓலா'],
+      rapido: ['rapido', 'bike taxi', 'ராபிடோ'],
+      irctc: ['irctc', 'train booking', 'ரயில்', 'டிக்கெட்'],
+      swiggy: ['swiggy', 'ஸ்விக்கி', 'சாப்பாடு'],
+      zomato: ['zomato', 'ஜொமாட்டோ'],
+      blinkit: ['blinkit', 'groceries', 'ப்ளிங்கிட்', 'மளிகை'],
+      pharmeasy: ['pharmeasy', 'medicine', 'மருந்து', 'பார்ம்ஈஸி', '1mg'],
+      jiosaavn: ['jiosaavn', 'saavn', 'ஜியோசாவன்'],
+      radio: ['radio', 'all india radio', 'வானொலி', 'ரேடியோ', 'air news'],
+      kibo: ['kibo', 'read book', 'audio book', 'கிபோ', 'புத்தகம் படி'],
+      instagram: ['instagram', 'insta', 'இன்ஸ்டாகிராம்', 'இன்ஸ்டா'],
     };
 
     for (const [appKey, terms] of Object.entries(aliases)) {

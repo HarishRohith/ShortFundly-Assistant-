@@ -320,4 +320,43 @@ export const CallMessageService = {
       };
     }
   },
+
+  // Send voice note via WhatsApp audio intent
+  async sendVoiceNote(recipient, language = 'en') {
+    HapticService.onProcessing();
+    const contact = await this.lookupContact(recipient);
+    const cleanNumber = contact ? contact.phoneNumber : recipient.replace(/[^\d+]/g, '');
+
+    try {
+      // Direct intent to WhatsApp conversation for voice recording
+      const waUrl = cleanNumber
+        ? `whatsapp://send?phone=${cleanNumber}`
+        : `whatsapp://send`;
+      const canOpen = await Linking.canOpenURL(waUrl);
+      if (canOpen) {
+        await Linking.openURL(waUrl);
+        HapticService.onSuccess();
+        const reply = language === 'ta'
+          ? `${recipient} என்பவருக்கு குரல் செய்தி அனுப்ப வாட்ஸ்அப் திறக்கப்படுகிறது.`
+          : `Opening WhatsApp conversation with ${recipient} to send your voice note.`;
+        await SpeechService.speak(reply, { preferredLang: language });
+        return { success: true, reply };
+      }
+    } catch (e) {}
+
+    return { success: false, reply: 'Could not launch voice note sender.' };
+  },
+
+  // Announce incoming call aloud for visually impaired users
+  async announceIncomingCall(callerNameOrNumber, language = 'en') {
+    HapticService.onConfirmationRequired();
+    let prompt = `Incoming call from ${callerNameOrNumber || 'Unknown caller'}.`;
+    if (language === 'ta') {
+      prompt = `${callerNameOrNumber || 'அறியப்படாத எண்'} என்பவரிடமிருந்து அழைப்பு வருகிறது.`;
+    } else if (language === 'tanglish') {
+      prompt = `${callerNameOrNumber || 'Unknown number'} kitta irundhu call varudhu bro.`;
+    }
+    await SpeechService.speak(prompt, { preferredLang: language });
+    return { success: true, prompt };
+  },
 };

@@ -1,11 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   StyleSheet,
   SafeAreaView,
   View,
   StatusBar,
-  TouchableWithoutFeedback,
-  Alert,
+  PanResponder,
 } from 'react-native';
 import { COLORS } from './src/config/colors';
 import { useVoiceAssistant, ASSISTANT_STATE } from './src/hooks/useVoiceAssistant';
@@ -15,10 +14,14 @@ import { SpokenDisplay } from './src/components/SpokenDisplay';
 import { ActionConfirmationModal } from './src/components/ActionConfirmationModal';
 import { ReminderListModal } from './src/components/ReminderListModal';
 import { QuickSettingsModal } from './src/components/QuickSettingsModal';
+import { PermissionModal } from './src/components/PermissionModal';
 import { SpeechService } from './src/services/speechService';
 import { BatteryService } from './src/services/batteryService';
 import { NotificationReaderService } from './src/services/notificationService';
-import { ReminderService } from './src/services/reminderService';
+import { InformationService } from './src/services/informationService';
+import { HapticService } from './src/services/hapticService';
+import { FallSafetyService } from './src/services/fallSafetyService';
+import { PermissionService } from './src/services/permissionService';
 
 export default function App() {
   const {
@@ -31,6 +34,7 @@ export default function App() {
     isWakeWordActive,
     toggleListening,
     startListening,
+    stopListening,
     processUtterance,
     repeatLastMessage,
     stopSpeech,
@@ -40,119 +44,224 @@ export default function App() {
   // Modals visibility
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [remindersVisible, setRemindersVisible] = useState(false);
+  const [permissionModalVisible, setPermissionModalVisible] = useState(false);
 
-  // Double-tap detector on screen background
+  // Gesture tracking refs
   const lastTapRef = useRef(0);
+  const holdTimerRef = useRef(null);
+  const isHoldingRef = useRef(false);
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
 
-  const handleScreenTouch = () => {
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 350;
-
-    // If currently speaking, a single tap anywhere interrupts speech immediately
-    if (state === ASSISTANT_STATE.SPEAKING) {
-      stopSpeech();
-      return;
+  // On initial mount: proactively check permissions & prompt onboarding if needed
+  useEffect(() => {
+    async function initPermissions() {
+      const { allGranted } = await PermissionService.checkAllPermissions();
+      if (!allGranted) {
+        setPermissionModalVisible(true);
+        SpeechService.speak(
+          'Welcome bro! Please grant permissions so I can listen to your voice and guide you hands-free.'
+        );
+      }
     }
+    initPermissions();
+  }, []);
 
-    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
-      // Double tap detected -> Repeat last response
-      repeatLastMessage();
-      lastTapRef.current = 0;
-    } else {
-      lastTapRef.current = now;
+  // Tactile Multi-Gesture PanResponder for Blind / Visually Impaired Users
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          return Math.abs(gestureState.dx) > 20 || Math.abs(gestureState.dy) > 20;
+        },
+        onPanResponderGrant: (evt) => {
+          const now = Date.now();
+          touchStartRef.current = {
+            x: evt.nativeEvent.pageX,
+            y: evt.nativeEvent.pageY,
+            time: now,
+          };
+          isHoldingRef.current = false;
+
+          // If a fall safety alert is counting down, tapping the screen immediately cancels it
+          if (FallSafetyService.isCountdownActive) {
+            FallSafetyService.cancelFallAlert(preferences?.language || 'auto');
+            return;
+          }
+
+          // If speech is playing, a single tap silences it immediately
+          if (state === ASSISTANT_STATE.SPEAKING) {
+            stopSpeech();
+            HapticService.onStop();
+            return;
+          }
+
+          // Long press timer (500ms): triggers Walkie-Talkie Mode
+          holdTimerRef.current = setTimeout(() => {
+            isHoldingRef.current = true;
+            HapticService.onHoldToTalk();
+            startListening();
+          }, 500);
+        },
+        onPanResponderRelease: (evt, gestureState) => {
+          if (holdTimerRef.current) {
+            clearTimeout(holdTimerRef.current);
+            holdTimerRef.current = null;
+          }
+
+          // If holding in Walkie-Talkie mode, releasing stops listening & evaluates speech
+          if (isHoldingRef.current) {
+            isHoldingRef.current = false;
+            stopListening();
+            return;
+          }
+
+          const now = Date.now();
+          const timeSinceLastTap = now - lastTapRef.current;
+          const isSwipe = Math.abs(gestureState.dx) > 40 || Math.abs(gestureState.dy) > 40;
+
+          // Swipe Down: Immediately Silence speech
+          if (gestureState.dy > 50 && Math.abs(gestureState.dx) < 50) {
+            stopSpeech();
+            HapticService.onStop();
+            return;
+          }
+
+          // Swipe Up: Speak Battery & Network Status
+          if (gestureState.dy < -50 && Math.abs(gestureState.dx) < 50) {
+            handleBatteryPress();
+            return;
+          }
+
+          // Double Tap (within 350ms): Repeats the last assistant response
+          if (!isSwipe && timeSinceLastTap < 350) {
+            HapticService.onDoubleTap();
+            repeatLastMessage();
+            lastTapRef.current = 0;
+            return;
+          }
+
+          lastTapRef.current = now;
+        },
+      }),
+    [state, preferences, startListening, stopListening, stopSpeech, repeatLastMessage]
+  );
+
+  // Quick Action Handlers
+  const handleBatteryPress = async () => {
+    const batt = await BatteryService.getSpokenBatteryStatus(preferences?.language || 'auto');
+    await SpeechService.speak(batt.spokenText, { preferredLang: preferences?.language || 'auto' });
+  };
+
+  const handleHelpPress = async () => {
+    const helpMsg =
+      preferences?.language === 'ta'
+        ? 'ப்ரோ உங்கள் குரல் உதவியாளர். பேச திரையை ஒருமுறை தொடவும். மீண்டும் கேட்க இரண்டு முறை தொடவும்.'
+        : 'Bro is your hands-free companion. Tap the center button or say "Hey Bro" anytime to command.';
+    await SpeechService.speak(helpMsg, { preferredLang: preferences?.language || 'auto' });
+  };
+
+  const handleCheckMoney = async () => {
+    await processUtterance('check money');
+  };
+
+  const handleWhichWay = async () => {
+    await processUtterance('which direction am I facing');
+  };
+
+  const handleMorningBriefing = async () => {
+    await processUtterance('morning briefing');
+  };
+
+  // Action Confirmation Handlers
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+    if (pendingAction.type === 'CALL') {
+      await processUtterance('yes call');
+    } else if (pendingAction.type === 'MESSAGE') {
+      await processUtterance('yes send');
     }
   };
 
-  // Announce battery status aloud
-  const handleBatteryPress = () => {
-    BatteryService.announceStatus(preferences.language);
-  };
-
-  // Announce voice command help
-  const handleHelpPress = () => {
-    const helpText = preferences.language === 'ta'
-      ? 'ஹே ப்ரோ உதவிகள்: நீங்கள் "பேட்டரி எப்படி இருக்கிறது", "வாட்ஸ்அப் திற", "சுரேஷை அழைக்கவும்", "நினைவூட்டல் அமை", அல்லது "வானிலை என்ன" என்று பேசலாம். மீண்டும் கேட்க திரையை இருமுறை தட்டவும்.'
-      : 'Hey Bro voice help: You can say: "What is my battery?", "Open WhatsApp", "Call Dad", "Remind me to take medicine at 8 PM", "Read notifications", or "Search for latest news". Double-tap the screen anytime to repeat.';
-    SpeechService.speak(helpText, { preferredLang: preferences.language });
-  };
-
-  // Action confirmation handlers (for phone calls / SMS)
-  const handleConfirmAction = () => {
-    processUtterance('yes');
-  };
-
-  const handleCancelAction = () => {
-    processUtterance('no');
-  };
-
-  // Read notifications
-  const handleOpenNotifications = () => {
-    NotificationReaderService.readNotifications(preferences.language);
+  const handleCancelAction = async () => {
+    await processUtterance('cancel');
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.canvas} />
 
-      <TouchableWithoutFeedback onPress={handleScreenTouch}>
-        <View style={styles.container}>
-          {/* Accessible Top Bar */}
-          <AccessibleHeader
-            batteryLevel={batteryLevel}
-            isCharging={false}
-            onBatteryPress={handleBatteryPress}
-            onSettingsPress={() => setSettingsVisible(true)}
-            onHelpPress={handleHelpPress}
-            wakeWordEnabled={isWakeWordActive && preferences.wakeWordEnabled}
-          />
+      <View
+        style={styles.container}
+        {...panResponder.panHandlers}
+        accessible={true}
+        accessibilityLabel="Bro Voice Assistant Screen. Tap or say Hey Bro to command. Double tap to repeat."
+        accessibilityLiveRegion="assertive"
+      >
+        {/* Accessible Top Bar */}
+        <AccessibleHeader
+          batteryLevel={batteryLevel}
+          isCharging={false}
+          onBatteryPress={handleBatteryPress}
+          onSettingsPress={() => setSettingsVisible(true)}
+          wakeWordEnabled={isWakeWordActive && (preferences?.wakeWordEnabled ?? true)}
+        />
 
-          {/* Central High-Contrast Tactile Orb */}
-          <CentralVoiceOrb
-            state={state}
-            onPress={toggleListening}
-            onLongPress={handleHelpPress}
-          />
+        {/* Central High-Contrast Tactile Voice Orb */}
+        <CentralVoiceOrb
+          state={state}
+          onPress={toggleListening}
+          onLongPress={handleHelpPress}
+        />
 
-          {/* Large-Print Spoken Display & Quick Action Buttons */}
-          <SpokenDisplay
-            lastQuery={lastQuery}
-            lastResponse={lastResponse}
-            onRepeat={repeatLastMessage}
-            onStop={stopSpeech}
-            onOpenReminders={() => setRemindersVisible(true)}
-            onOpenNotifications={handleOpenNotifications}
-            isSpeaking={state === ASSISTANT_STATE.SPEAKING}
-          />
+        {/* Spoken Dialogue Display & Quick Sensory Shortcuts */}
+        <SpokenDisplay
+          lastQuery={lastQuery}
+          lastResponse={lastResponse}
+          onRepeat={repeatLastMessage}
+          onStop={stopSpeech}
+          isSpeaking={state === ASSISTANT_STATE.SPEAKING}
+          onCheckMoney={handleCheckMoney}
+          onWhichWay={handleWhichWay}
+          onMorningBriefing={handleMorningBriefing}
+        />
 
-          {/* Phone Call / SMS Voice Confirmation Modal */}
-          <ActionConfirmationModal
-            visible={state === ASSISTANT_STATE.AWAITING_CONFIRMATION}
-            pendingAction={pendingAction}
-            promptText={lastResponse}
-            onConfirm={handleConfirmAction}
-            onCancel={handleCancelAction}
-          />
+        {/* Action Confirmation Modal (for Call / SMS dispatch) */}
+        <ActionConfirmationModal
+          visible={state === ASSISTANT_STATE.AWAITING_CONFIRMATION}
+          pendingAction={pendingAction}
+          promptText={lastResponse}
+          onConfirm={handleConfirmAction}
+          onCancel={handleCancelAction}
+        />
 
-          {/* Reminders Modal */}
-          <ReminderListModal
-            visible={remindersVisible}
-            onClose={() => setRemindersVisible(false)}
-            onAddVoiceReminder={() => {
-              SpeechService.speak('What should I remind you about?');
-              startListening();
-            }}
-          />
+        {/* Reminders Modal */}
+        <ReminderListModal
+          visible={remindersVisible}
+          onClose={() => setRemindersVisible(false)}
+          onAddVoiceReminder={() => {
+            SpeechService.speak('What should I remind you about, bro?');
+            startListening();
+          }}
+        />
 
-          {/* Accessibility Settings Modal */}
-          <QuickSettingsModal
-            visible={settingsVisible}
-            onClose={() => setSettingsVisible(false)}
-            preferences={preferences}
-            onUpdatePreferences={updatePreferences}
-            onOpenReminders={() => setRemindersVisible(true)}
-          />
-        </View>
-      </TouchableWithoutFeedback>
+        {/* Bro Quick Settings Modal */}
+        <QuickSettingsModal
+          visible={settingsVisible}
+          onClose={() => setSettingsVisible(false)}
+          preferences={preferences}
+          onUpdatePreferences={updatePreferences}
+          onOpenReminders={() => setRemindersVisible(true)}
+          onOpenPermissions={() => setPermissionModalVisible(true)}
+        />
+
+        {/* Upfront Permissions & Notification Access Onboarding */}
+        <PermissionModal
+          visible={permissionModalVisible}
+          onClose={() => setPermissionModalVisible(false)}
+          onPermissionsGranted={() => setPermissionModalVisible(false)}
+        />
+      </View>
     </SafeAreaView>
   );
 }

@@ -2,13 +2,13 @@
   "expo": {
     "name": "My Bro",
     "slug": "bro-voice-assistant",
-    "owner": "subha04s-team",
+    "owner": "harishrohith",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "brovoice",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "backgroundColor": "#000000",
@@ -16,14 +16,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.shortfundly.voiceassistant",
+      "bundleIdentifier": "com.bro.voiceassistant",
       "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "My Bro uses speech recognition to understand your voice commands.",
-        "NSMicrophoneUsageDescription": "My Bro needs microphone access to listen for 'Hey Bro' and process your requests."
+        "NSSpeechRecognitionUsageDescription": "Allow My Bro to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow My Bro to use the microphone."
       }
     },
     "android": {
-      "package": "com.shortfundly.voiceassistant",
+      "package": "com.bro.voiceassistant",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -38,7 +38,18 @@
         "VIBRATE",
         "POST_NOTIFICATIONS",
         "INTERNET",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "CALL_PHONE",
+        "SEND_SMS",
+        "READ_PHONE_STATE",
+        "READ_CONTACTS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MICROPHONE",
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "BODY_SENSORS",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -55,13 +66,15 @@
         {
           "microphonePermission": "Allow My Bro to use the microphone.",
           "speechRecognitionPermission": "Allow My Bro to use speech recognition.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "80a9b8b9-4fcc-4535-87bf-e272cae39382"
+        "projectId": "638b1264-6811-4b14-b024-7a44f2d0f33d"
       }
     }
   }
