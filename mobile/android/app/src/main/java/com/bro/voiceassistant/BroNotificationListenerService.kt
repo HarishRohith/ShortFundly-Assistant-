@@ -25,6 +25,7 @@ class BroNotificationListenerService : NotificationListenerService() {
             val text = extras.getCharSequence("android.text")?.toString() ?: ""
 
             Log.d("BroNotificationService", "Notification from $packageName: $title - $text")
+            AssiBridgeModule.onNotificationPosted(packageName, title, text)
         } catch (e: Exception) {
             Log.e("BroNotificationService", "Error parsing notification", e)
         }

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import * as IntentLauncher from 'expo-intent-launcher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS, DEFAULT_PREFERENCES } from '../config/constants';
@@ -9,6 +9,7 @@ class NotificationReaderManager {
   constructor() {
     this.allowedApps = new Set(DEFAULT_PREFERENCES.allowedNotificationApps);
     this.queuedNotifications = [];
+    this.initNativeNotificationListener();
   }
 
   async loadSettings() {
@@ -218,6 +219,59 @@ class NotificationReaderManager {
       reply: fullSpokenText,
       notifications: unread,
     };
+  }
+
+  // Initialize Android Native notification broadcast listener
+  initNativeNotificationListener() {
+    try {
+      DeviceEventEmitter.addListener('onAssiNotification', async (data) => {
+        if (!data || !data.packageName) return;
+
+        // Ignore our own assistant's notifications
+        if (data.packageName.includes('com.bro.voiceassistant') || data.packageName.includes('com.android.systemui')) {
+          return;
+        }
+
+        const title = (data.title || '').trim();
+        const text = (data.text || '').trim();
+        if (!title && !text) return;
+
+        // Map package to friendly app name
+        let friendlyApp = 'Message';
+        const pkg = data.packageName.toLowerCase();
+        if (pkg.includes('whatsapp')) friendlyApp = 'WhatsApp';
+        else if (pkg.includes('messaging') || pkg.includes('mms')) friendlyApp = 'Messages';
+        else if (pkg.includes('dialer') || pkg.includes('telecom')) friendlyApp = 'Phone';
+        else if (pkg.includes('youtube')) friendlyApp = 'YouTube';
+        else if (pkg.includes('gm') || pkg.includes('email')) friendlyApp = 'Gmail';
+        else if (pkg.includes('instagram')) friendlyApp = 'Instagram';
+        else if (pkg.includes('spotify')) friendlyApp = 'Spotify';
+
+        const notifItem = {
+          appName: friendlyApp,
+          sender: title || friendlyApp,
+          text: text,
+        };
+
+        this.pushNotification(notifItem);
+
+        // Check if app notifications are allowed
+        if (this.isAppAllowed(friendlyApp)) {
+          const isDiscreet = await this.isDiscreetModeActive();
+          HapticService.onNotification();
+
+          if (isDiscreet) {
+            SpeechService.speak(`New notification from ${friendlyApp}. Discreet mode is on.`);
+          } else {
+            // Natural 1-sentence summary spoken aloud
+            const spokenSummary = `From ${friendlyApp}, ${title}: ${text}`;
+            SpeechService.speak(spokenSummary);
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('[NotificationService] Failed to bind native listener:', e);
+    }
   }
 
   // Push local notification

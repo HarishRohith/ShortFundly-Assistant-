@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { COMMON_APPS } from '../config/constants';
@@ -84,10 +84,22 @@ export const AppNavigationService = {
           }
         }
 
-        // Try direct intent launch by package name
+        // 1. Direct native package launch via AssiBridge (most reliable on Android 11+)
+        if (appInfo.packageName && NativeModules.AssiBridge?.launchApp) {
+          try {
+            const launched = await NativeModules.AssiBridge.launchApp(appInfo.packageName);
+            if (launched) {
+              HapticService.onSuccess();
+              return this.formatSuccessResponse(appInfo.name, language);
+            }
+          } catch (bridgeErr) {
+            console.warn(`[AppNav] AssiBridge launch error for ${appInfo.name}:`, bridgeErr);
+          }
+        }
+
+        // 2. Direct intent launch by package name
         if (appInfo.packageName) {
           try {
-            // Check if app scheme or intent can be launched
             if (appInfo.urlScheme) {
               const canOpen = await Linking.canOpenURL(appInfo.urlScheme);
               if (canOpen) {
@@ -97,7 +109,6 @@ export const AppNavigationService = {
               }
             }
 
-            // Launch package via intent
             await IntentLauncher.startActivityAsync('android.intent.action.MAIN', {
               packageName: appInfo.packageName,
               category: 'android.intent.category.LAUNCHER',

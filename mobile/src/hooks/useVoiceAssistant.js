@@ -112,10 +112,11 @@ export function useVoiceAssistant() {
   }, []);
 
   // Start Voice Listening (for direct commands)
-  const startListening = useCallback(async () => {
+  const startListening = useCallback(async (delayMs = 0) => {
     // If speaking, interrupt speech first
     if (stateRef.current === ASSISTANT_STATE.SPEAKING) {
       await SpeechService.stop();
+      delayMs = Math.max(delayMs, 250);
     }
 
     if (silenceTimeoutRef.current) {
@@ -126,6 +127,10 @@ export function useVoiceAssistant() {
 
     HapticService.onMicOpen();
     setState((prev) => (prev === ASSISTANT_STATE.AWAITING_CONFIRMATION ? ASSISTANT_STATE.AWAITING_CONFIRMATION : ASSISTANT_STATE.LISTENING));
+
+    if (delayMs > 0) {
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
 
     if (SpeechRecognitionService.isAvailable()) {
       const langCode = preferencesRef.current.language === 'ta' ? 'ta-IN' : 'en-US';
@@ -149,17 +154,17 @@ export function useVoiceAssistant() {
       } else if (stateRef.current === ASSISTANT_STATE.SPEAKING) {
         if (isWakeGreetingRef.current) {
           isWakeGreetingRef.current = false;
-          // Wake greeting finished speaking! Automatically open mic for hands-free command
-          startListening();
+          // Wake greeting finished speaking! Release audio focus then open mic for hands-free command
+          setTimeout(() => startListening(150), 200);
         } else if (pendingActionRef.current) {
           // Immediately listen for voice confirmation ("Yes" / "No") hands-free
           setState(ASSISTANT_STATE.AWAITING_CONFIRMATION);
-          startListening();
+          setTimeout(() => startListening(150), 200);
         } else {
           setState(ASSISTANT_STATE.IDLE);
           // Resume wake word listening once speaking completes
           if (preferencesRef.current.wakeWordEnabled) {
-            WakeWordService.startService(preferencesRef.current.language);
+            setTimeout(() => WakeWordService.startService(preferencesRef.current.language), 300);
           }
         }
       }

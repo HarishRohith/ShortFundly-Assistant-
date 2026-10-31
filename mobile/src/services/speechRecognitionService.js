@@ -18,6 +18,8 @@ class SpeechRecognitionManager {
     this.subscriptions = [];
     this.autoRestart = false;
     this.currentLanguage = 'en-US';
+    this.restartTimer = null;
+    this.isRestarting = false;
 
     this.initNativeListeners();
   }
@@ -25,18 +27,22 @@ class SpeechRecognitionManager {
   isAvailable() {
     return Boolean(
       ExpoSpeechRecognitionModule &&
-      typeof ExpoSpeechRecognitionModule.start === 'function'
+      typeof ExpoSpeechRecognitionModule.start === 'function' &&
+      typeof ExpoSpeechRecognitionModule.addListener === 'function'
     );
   }
 
   async checkAndRequestPermissions() {
     if (!this.isAvailable()) return false;
     try {
-      const perms = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-      this.hasPermission = perms.granted;
-      return perms.granted;
+      if (typeof ExpoSpeechRecognitionModule.requestPermissionsAsync === 'function') {
+        const perms = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        this.hasPermission = Boolean(perms?.granted);
+        return this.hasPermission;
+      }
+      return true;
     } catch (e) {
-      console.warn('[SpeechRecognition] Permission request error:', e);
+      console.warn('[SpeechRecognition] Permission request error:', e?.message);
       return false;
     }
   }
@@ -45,23 +51,32 @@ class SpeechRecognitionManager {
     if (!this.isAvailable()) return;
 
     try {
+      // Clean up previous subscriptions if any
+      this.subscriptions.forEach((sub) => {
+        try { sub?.remove?.(); } catch (err) {}
+      });
+      this.subscriptions = [];
+
       const resSub = ExpoSpeechRecognitionModule.addListener('result', (event) => {
         const transcript =
-          event.results?.[0]?.transcript ||
-          (typeof event.results?.[0] === 'string' ? event.results[0] : '');
-        const isFinal = Boolean(event.isFinal);
+          event?.results?.[0]?.transcript ||
+          (typeof event?.results?.[0] === 'string' ? event.results[0] : '');
+        const isFinal = Boolean(event?.isFinal);
 
         this.notifyResult({
-          transcript: transcript.trim(),
+          transcript: (transcript || '').trim(),
           isFinal,
           raw: event,
         });
       });
 
-      const scheduleRestart = (delay = 500) => {
+      const scheduleRestart = (delay = 600) => {
         if (!this.autoRestart || this.isRestarting) return;
         this.isRestarting = true;
-        if (this.restartTimer) clearTimeout(this.restartTimer);
+        if (this.restartTimer) {
+          clearTimeout(this.restartTimer);
+          this.restartTimer = null;
+        }
         this.restartTimer = setTimeout(async () => {
           this.isRestarting = false;
           if (this.autoRestart) {
@@ -86,15 +101,20 @@ class SpeechRecognitionManager {
         scheduleRestart(400);
       });
 
-      this.subscriptions = [resSub, errSub, endSub];
+      this.subscriptions = [resSub, errSub, endSub].filter(Boolean);
     } catch (e) {
-      console.warn('[SpeechRecognition] Failed to attach native listeners:', e);
+      console.warn('[SpeechRecognition] Failed to attach native listeners:', e?.message);
     }
   }
 
   async start({ lang = 'en-US', continuous = true, autoRestart = false } = {}) {
     this.currentLanguage = lang;
     this.autoRestart = autoRestart;
+
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
 
     if (!this.isAvailable()) {
       console.log('[SpeechRecognition] Module not available, skipping start');
@@ -108,6 +128,13 @@ class SpeechRecognitionManager {
         return false;
       }
 
+      // Safely abort lingering session before starting fresh
+      try {
+        if (typeof ExpoSpeechRecognitionModule.abort === 'function') {
+          ExpoSpeechRecognitionModule.abort();
+        }
+      } catch (err) {}
+
       await ExpoSpeechRecognitionModule.start({
         lang,
         interimResults: true,
@@ -119,7 +146,7 @@ class SpeechRecognitionManager {
       this.notifyState(true);
       return true;
     } catch (e) {
-      console.warn('[SpeechRecognition] Failed to start native recognizer:', e);
+      console.warn('[SpeechRecognition] Failed to start native recognizer:', e?.message);
       this.isListening = false;
       this.notifyState(false);
       return false;
@@ -128,13 +155,27 @@ class SpeechRecognitionManager {
 
   async stop() {
     this.autoRestart = false;
-    if (!this.isAvailable()) return;
+    this.isRestarting = false;
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
+
+    if (!this.isAvailable()) {
+      this.isListening = false;
+      this.notifyState(false);
+      return;
+    }
 
     try {
-      await ExpoSpeechRecognitionModule.stop();
+      if (typeof ExpoSpeechRecognitionModule.stop === 'function') {
+        await ExpoSpeechRecognitionModule.stop();
+      }
     } catch (e) {
       try {
-        await ExpoSpeechRecognitionModule.abort();
+        if (typeof ExpoSpeechRecognitionModule.abort === 'function') {
+          await ExpoSpeechRecognitionModule.abort();
+        }
       } catch (err) {}
     }
     this.isListening = false;

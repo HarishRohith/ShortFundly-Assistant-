@@ -5,6 +5,8 @@ import {
   View,
   StatusBar,
   PanResponder,
+  Text,
+  TouchableOpacity,
 } from 'react-native';
 import { COLORS } from './src/config/colors';
 import { useVoiceAssistant, ASSISTANT_STATE } from './src/hooks/useVoiceAssistant';
@@ -22,6 +24,8 @@ import { InformationService } from './src/services/informationService';
 import { HapticService } from './src/services/hapticService';
 import { FallSafetyService } from './src/services/fallSafetyService';
 import { PermissionService } from './src/services/permissionService';
+import { AutonomousRoutineEngine } from './src/services/autonomousRoutineEngine';
+import { MedicalCareService } from './src/services/medicalCareService';
 
 export default function App() {
   const {
@@ -46,6 +50,11 @@ export default function App() {
   const [remindersVisible, setRemindersVisible] = useState(false);
   const [permissionModalVisible, setPermissionModalVisible] = useState(false);
 
+  // Assistive Routine Telemetry
+  const [hydrationGlasses, setHydrationGlasses] = useState(0);
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
+  const [nextRoutineLabel, setNextRoutineLabel] = useState('Lunch at 1 PM');
+
   // Gesture tracking refs
   const lastTapRef = useRef(0);
   const holdTimerRef = useRef(null);
@@ -65,6 +74,33 @@ export default function App() {
     }
     initPermissions();
   }, []);
+
+  // Mount 24/7 Autonomous Routine Engine & update live telemetry
+  useEffect(() => {
+    AutonomousRoutineEngine.startEngine(preferences?.language || 'auto');
+
+    const updateTelemetry = async () => {
+      try {
+        const d = new Date();
+        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setCurrentTimeStr(timeStr);
+
+        const h = d.getHours();
+        setNextRoutineLabel(h < 13 ? 'Lunch at 1:00 PM' : h < 20 ? 'Dinner at 8:00 PM' : 'Bedtime at 9:30 PM');
+
+        const hydr = await MedicalCareService.getHydrationData();
+        setHydrationGlasses(hydr.glassesDrunk);
+      } catch (e) {}
+    };
+
+    updateTelemetry();
+    const interval = setInterval(updateTelemetry, 30000);
+
+    return () => {
+      clearInterval(interval);
+      AutonomousRoutineEngine.stopEngine();
+    };
+  }, [preferences?.language]);
 
   // Tactile Multi-Gesture PanResponder for Blind / Visually Impaired Users
   const panResponder = useMemo(
@@ -202,6 +238,52 @@ export default function App() {
           onLongPress={handleHelpPress}
         />
 
+        {/* Assistive Telemetry Dashboard (Live Time, Water, Next Schedule) */}
+        <View style={styles.telemetryRow}>
+          <TouchableOpacity
+            style={styles.telemetryPill}
+            onPress={async () => {
+              const res = InformationService.getTime(preferences?.language || 'auto');
+              await SpeechService.speak(res.reply, { preferredLang: preferences?.language || 'auto' });
+            }}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Current time: ${currentTimeStr}`}
+          >
+            <Text style={styles.telemetryEmoji}>⏰</Text>
+            <Text style={styles.telemetryText}>{currentTimeStr || 'Time'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.telemetryPill}
+            onPress={async () => {
+              const res = await MedicalCareService.recordGlassDrunk(preferences?.language || 'auto');
+              setHydrationGlasses((prev) => prev + 1);
+              await SpeechService.speak(res.reply, { preferredLang: preferences?.language || 'auto' });
+            }}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Water Intake: ${hydrationGlasses} of 8 glasses. Tap to log glass.`}
+          >
+            <Text style={styles.telemetryEmoji}>💧</Text>
+            <Text style={styles.telemetryText}>{`${hydrationGlasses}/8 Glasses`}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.telemetryPill}
+            onPress={async () => {
+              const routineRes = await AutonomousRoutineEngine.getRoutineStatus(preferences?.language || 'auto');
+              await SpeechService.speak(routineRes.reply, { preferredLang: preferences?.language || 'auto' });
+            }}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Next Routine: ${nextRoutineLabel}. Tap to hear full schedule.`}
+          >
+            <Text style={styles.telemetryEmoji}>🍱</Text>
+            <Text style={styles.telemetryText}>{nextRoutineLabel}</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Spoken Dialogue Display */}
         <SpokenDisplay
           lastQuery={lastQuery}
@@ -257,5 +339,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.canvas,
+  },
+  telemetryRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    marginVertical: 4,
+  },
+  telemetryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: COLORS.surfaceBorder,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+  },
+  telemetryEmoji: {
+    fontSize: 13,
+  },
+  telemetryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
   },
 });

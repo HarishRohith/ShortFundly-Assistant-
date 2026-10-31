@@ -1,3 +1,4 @@
+import { Platform, NativeModules } from 'react-native';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HapticService } from './hapticService';
@@ -119,6 +120,22 @@ export const CallMessageService = {
     }
 
     try {
+      // 1. Search actual Android device contacts via AssiBridge
+      if (NativeModules.AssiBridge?.searchContact) {
+        try {
+          const deviceResults = await NativeModules.AssiBridge.searchContact(clean);
+          if (Array.isArray(deviceResults) && deviceResults.length > 0 && deviceResults[0].phoneNumber) {
+            return {
+              name: deviceResults[0].name || nameOrQuery,
+              phoneNumber: deviceResults[0].phoneNumber,
+            };
+          }
+        } catch (contactErr) {
+          console.warn('[CallMessage] Device contact search error:', contactErr);
+        }
+      }
+
+      // 2. Search local voice-saved contacts
       const contacts = await this.getSavedContacts();
 
       // Normalize common aliases
@@ -241,6 +258,23 @@ export const CallMessageService = {
     }
 
     try {
+      // 1. Try direct Android ACTION_CALL via AssiBridge
+      if (NativeModules.AssiBridge?.makeDirectCall) {
+        try {
+          const called = await NativeModules.AssiBridge.makeDirectCall(phoneNumber);
+          if (called) {
+            HapticService.onSuccess();
+            return {
+              success: true,
+              reply: `Calling ${targetName} now.`,
+            };
+          }
+        } catch (bridgeCallErr) {
+          console.warn('[CallMessage] AssiBridge direct call failed, falling back:', bridgeCallErr);
+        }
+      }
+
+      // 2. Linking url fallback
       const url = `tel:${phoneNumber}`;
       const canOpen = await Linking.canOpenURL(url);
       if (canOpen) {

@@ -18,6 +18,7 @@ import { SpatialVisionService } from './spatialVisionService';
 import { FallSafetyService } from './fallSafetyService';
 import { HapticCompassService } from './hapticCompassService';
 import { DailyExecutiveBriefing } from './dailyExecutiveBriefing';
+import { AutonomousRoutineEngine } from './autonomousRoutineEngine';
 import { UserProfileService } from './userProfileService';
 import { VoiceSecurityService } from './voiceSecurityService';
 
@@ -755,6 +756,31 @@ export const CommandInterpreter = {
       const res = InformationService.getDate(language);
       await SpeechService.speak(res.reply, { preferredLang: language });
       return { success: true, intent: 'DATE', reply: res.reply };
+    }
+
+    // 8b. Autonomous Routine & Meal Schedules
+    if (
+      clean.includes('routine') ||
+      clean.includes('my schedule') ||
+      clean.includes('daily plan') ||
+      clean.includes('today schedule') ||
+      clean.includes('நாளின் அட்டவணை')
+    ) {
+      const routineRes = await AutonomousRoutineEngine.getRoutineStatus(language);
+      await SpeechService.speak(routineRes.reply, { preferredLang: language });
+      return { success: true, intent: 'ROUTINE_STATUS', reply: routineRes.reply };
+    }
+
+    if (clean.includes('when is lunch') || clean.includes('lunch time') || clean.includes('மதிய உணவு')) {
+      const msg = language === 'ta' ? 'மதிய உணவு நேரம் மதியம் 1:00 மணி.' : 'Lunch time is scheduled for 1:00 PM.';
+      await SpeechService.speak(msg, { preferredLang: language });
+      return { success: true, intent: 'LUNCH_TIME', reply: msg };
+    }
+
+    if (clean.includes('when is dinner') || clean.includes('dinner time') || clean.includes('இரவு உணவு')) {
+      const msg = language === 'ta' ? 'இரவு உணவு நேரம் இரவு 8:00 மணி.' : 'Dinner time is scheduled for 8:00 PM.';
+      await SpeechService.speak(msg, { preferredLang: language });
+      return { success: true, intent: 'DINNER_TIME', reply: msg };
     }
 
     // 9. Math Calculation (Offline)

@@ -65,7 +65,7 @@ export function CentralVoiceOrb({ state, onPress, onLongPress }) {
         Animated.loop(
           Animated.sequence([
             Animated.timing(outerPulseAnim, {
-              toValue: 1.35,
+              toValue: 1.12,
               duration: 850,
               easing: Easing.out(Easing.ease),
               useNativeDriver: true,
@@ -185,25 +185,42 @@ export function CentralVoiceOrb({ state, onPress, onLongPress }) {
             state === ASSISTANT_STATE.PROCESSING && { transform: [{ rotate: spin }] },
           ]}
         >
-          {state === ASSISTANT_STATE.LISTENING && (
-            <Mic size={54} color={COLORS.accentRed} strokeWidth={2.6} />
-          )}
-          {state === ASSISTANT_STATE.PROCESSING && (
-            <Sparkles size={52} color={COLORS.brandAccent} strokeWidth={2.6} />
-          )}
-          {state === ASSISTANT_STATE.SPEAKING && (
-            <Volume2 size={54} color={COLORS.brandPrimary} strokeWidth={2.6} />
-          )}
-          {state === ASSISTANT_STATE.AWAITING_CONFIRMATION && (
-            <AlertCircle size={52} color={COLORS.warning} strokeWidth={2.6} />
-          )}
-          {state === ASSISTANT_STATE.IDLE && (
+          {/* Cute 3D Duck Mascot — Always visible in all states */}
+          <View style={styles.mascotWrapper}>
             <Image
               source={require('../../assets/logo.png')}
-              style={styles.petMascot}
+              style={[
+                styles.petMascot,
+                {
+                  borderColor: getOrbAccent(),
+                  borderWidth: state !== ASSISTANT_STATE.IDLE ? 2.5 : 1,
+                },
+              ]}
               resizeMode="contain"
             />
-          )}
+
+            {/* Reactive State Badge Pill on Bottom-Right */}
+            {state === ASSISTANT_STATE.LISTENING && (
+              <View style={[styles.badgePill, { backgroundColor: COLORS.accentRed }]}>
+                <Mic size={15} color="#FFFFFF" strokeWidth={2.8} />
+              </View>
+            )}
+            {state === ASSISTANT_STATE.PROCESSING && (
+              <View style={[styles.badgePill, { backgroundColor: COLORS.brandAccent }]}>
+                <Sparkles size={15} color="#FFFFFF" strokeWidth={2.8} />
+              </View>
+            )}
+            {state === ASSISTANT_STATE.SPEAKING && (
+              <View style={[styles.badgePill, { backgroundColor: COLORS.brandPrimary }]}>
+                <Volume2 size={15} color="#FFFFFF" strokeWidth={2.8} />
+              </View>
+            )}
+            {state === ASSISTANT_STATE.AWAITING_CONFIRMATION && (
+              <View style={[styles.badgePill, { backgroundColor: COLORS.warning }]}>
+                <AlertCircle size={15} color="#FFFFFF" strokeWidth={2.8} />
+              </View>
+            )}
+          </View>
         </Animated.View>
 
         {/* State Label */}
@@ -223,48 +240,71 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 18,
+    marginVertical: 14,
   },
   outerAura: {
     position: 'absolute',
-    width: 270,
-    height: 270,
-    borderRadius: 135,
-    borderWidth: 2.5,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 2,
   },
   midHalo: {
     position: 'absolute',
-    width: 236,
-    height: 236,
-    borderRadius: 118,
-    borderWidth: 3.5,
+    width: 202,
+    height: 202,
+    borderRadius: 101,
+    borderWidth: 2.5,
   },
   orb: {
-    width: 196,
-    height: 196,
-    borderRadius: 98,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     backgroundColor: COLORS.surface,
     borderWidth: 3.5,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 12,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
+    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
   },
   innerContent: {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  mascotWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   petMascot: {
-    width: 88,
-    height: 88,
+    width: 82,
+    height: 82,
     borderRadius: 22,
+    backgroundColor: '#F9FAFB',
+  },
+  badgePill: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   stateText: {
     marginTop: 8,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
   },
 });

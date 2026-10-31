@@ -87,6 +87,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: COLORS.surfaceBorder,
     backgroundColor: COLORS.canvas,
+    zIndex: 20,
+    elevation: 8,
   },
   brandRow: {
     flexDirection: 'row',
