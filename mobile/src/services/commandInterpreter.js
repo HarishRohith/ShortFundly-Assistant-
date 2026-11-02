@@ -53,6 +53,24 @@ export const CommandInterpreter = {
       }
     }
 
+    // 0. Voice Tone & Pitch Biometric Security Guard (Anti-Data Leak)
+    if (VoiceSecurityService.isSensitiveCommand('', clean)) {
+      const auth = await VoiceSecurityService.verifyVoiceAccess({
+        query: raw,
+        language,
+        detectedPitch: context.detectedPitch,
+      });
+      if (!auth.allowed) {
+        await SpeechService.speak(auth.reply, { preferredLang: language });
+        return {
+          success: false,
+          intent: 'VOICE_ACCESS_DENIED',
+          reply: auth.reply,
+          reason: auth.reason,
+        };
+      }
+    }
+
     // 0. Speech Controls: Repeat / Stop
     if (/^(repeat|say again|once more|மீண்டும் சொல்|thirumba sollu)/i.test(clean)) {
       await SpeechService.repeat();
@@ -162,7 +180,10 @@ export const CommandInterpreter = {
       const isNegative = /^(no|nope|cancel|stop|don't|dont|illa|vendam|vendaam|இல்லை|வேண்டாம்|don't call|dont call)/i.test(clean);
 
       if (isAffirmative) {
-        if (context.pendingAction.type === 'CALL') {
+        if (context.pendingAction.type === 'PROACTIVE_NOTIFICATION_PERMISSION') {
+          const res = await NotificationReaderService.readPendingShortSummary(language);
+          return { success: res.success, intent: 'CONFIRMED_READ_NOTIFICATION', reply: res.reply, clearPending: true };
+        } else if (context.pendingAction.type === 'CALL') {
           const res = await CallMessageService.executeCall(context.pendingAction.payload);
           await SpeechService.speak(res.reply, { preferredLang: language });
           return { success: res.success, intent: 'CALL_EXECUTED', reply: res.reply, clearPending: true };
@@ -174,6 +195,12 @@ export const CommandInterpreter = {
         }
       } else if (isNegative) {
         HapticService.onMicClose();
+        if (context.pendingAction.type === 'PROACTIVE_NOTIFICATION_PERMISSION') {
+          NotificationReaderService.pendingNotification = null;
+          const cancelReply = language === 'ta' ? 'சரி, செய்தி ரகசியமாக வைக்கப்பட்டுள்ளது.' : 'Understood. Message kept unread in private.';
+          await SpeechService.speak(cancelReply, { preferredLang: language });
+          return { success: true, intent: 'CANCEL_READ_NOTIFICATION', reply: cancelReply, clearPending: true };
+        }
         const cancelReply = language === 'ta' ? 'ரத்து செய்யப்பட்டது.' : 'Cancelled.';
         await SpeechService.speak(cancelReply, { preferredLang: language });
         return { success: true, intent: 'ACTION_CANCELLED', reply: cancelReply, clearPending: true };
@@ -232,6 +259,24 @@ export const CommandInterpreter = {
     ) {
       const res = await NotificationReaderService.readNotifications(language, true);
       return { success: res.success, intent: 'READ_PRIVATE_NOTIFICATIONS', reply: res.reply };
+    }
+
+    // 4b. Progressive Disclosure: Full Message Content Review ("Explain full", "Read full message")
+    if (
+      clean === 'explain full' ||
+      clean === 'read full' ||
+      clean === 'read full message' ||
+      clean === 'full review' ||
+      clean === 'full content review' ||
+      clean.includes('read full notification') ||
+      clean.includes('explain full message') ||
+      clean.includes('முழுமையாக சொல்') ||
+      clean.includes('முழுமையாக படி') ||
+      clean.includes('முழு விவரம்') ||
+      clean.includes('full details')
+    ) {
+      const res = await NotificationReaderService.readFullNotificationReview(language);
+      return { success: res.success, intent: 'READ_FULL_REVIEW', reply: res.reply };
     }
 
     if (
@@ -689,6 +734,15 @@ export const CommandInterpreter = {
       return { success: res.success, intent: 'SEND_VOICE_NOTE', reply: res.reply };
     }
 
+    // 6a. Conversational question: "can you send SMS", "can you send a message"
+    if (/^(?:can you|how do i|able to|will you)?\s*(?:send (?:an? )?(?:sms|message|text)|sms anuppa mudiyuma)\??$/i.test(clean)) {
+      const infoReply = language === 'ta'
+        ? 'ஆம், என்னால் மெசேஜ் அனுப்ப முடியும்! யாரிடம் என்ன சொல்ல வேண்டும் என்று கூறவும். உதாரணமாக: "ஹரிஷிற்கு வணக்கம் என்று மெசேஜ் அனுப்பு".'
+        : 'Yes, I can send SMS and WhatsApp messages for you! Just tell me who to message and what to say, for example: "Send Hi SMS to Harish".';
+      await SpeechService.speak(infoReply, { preferredLang: language });
+      return { success: true, intent: 'SMS_HELP', reply: infoReply };
+    }
+
     // 6b. Message / SMS / WhatsApp intent
     const messageIntent = CallMessageService.parseMessageIntent(raw);
     if (messageIntent && messageIntent.content) {
@@ -713,6 +767,70 @@ export const CommandInterpreter = {
         },
         reply: conf.prompt,
       };
+    }
+
+    // 6d. Hands-Free Media & Music: Spotify
+    if (
+      (clean.includes('play') && clean.includes('spotify')) ||
+      clean.startsWith('spotify play') ||
+      clean.includes('ஸ்பாட்டிபையில்') ||
+      clean.includes('பாடல் போடு')
+    ) {
+      const res = await AppNavigationService.playSpotify(raw, language);
+      return { success: res.success, intent: 'PLAY_SPOTIFY', reply: res.reply };
+    }
+
+    // 6e. Hands-Free Media: YouTube Search & Play
+    if (
+      (clean.includes('play') && clean.includes('youtube')) ||
+      clean.includes('search and play') ||
+      clean.startsWith('youtube play') ||
+      clean.includes('யூடியூபில்')
+    ) {
+      const res = await AppNavigationService.playYouTube(raw, language);
+      return { success: res.success, intent: 'PLAY_YOUTUBE', reply: res.reply };
+    }
+
+    // 6f. App Restriction Controller ("Restrict camera", "Disable scanner", "Allow camera")
+    if (
+      clean.startsWith('restrict ') ||
+      clean.startsWith('block app ') ||
+      clean.startsWith('disable app ') ||
+      clean.includes('செயலியை முடக்கு')
+    ) {
+      const targetMatch = clean.replace(/^(?:restrict|block app|disable app)\s+/i, '').replace(/\s+செயலியை முடக்கு/i, '').trim();
+      const app = AppNavigationService.detectApp(targetMatch) || { key: targetMatch, name: targetMatch };
+      await AppNavigationService.setAppRestricted(app.key, true);
+      const reply = language === 'ta' ? `${app.name} செயலி முடக்கப்பட்டது.` : `${app.name} is now restricted from opening.`;
+      await SpeechService.speak(reply, { preferredLang: language });
+      return { success: true, intent: 'RESTRICT_APP', reply };
+    }
+
+    if (
+      clean.startsWith('unrestrict ') ||
+      clean.startsWith('allow app ') ||
+      clean.startsWith('enable app ') ||
+      clean.includes('செயலியை அனுமதி')
+    ) {
+      const targetMatch = clean.replace(/^(?:unrestrict|allow app|enable app)\s+/i, '').replace(/\s+செயலியை அனுமதி/i, '').trim();
+      const app = AppNavigationService.detectApp(targetMatch) || { key: targetMatch, name: targetMatch };
+      await AppNavigationService.setAppRestricted(app.key, false);
+      const reply = language === 'ta' ? `${app.name} செயலி அனுமதிக்கப்பட்டது.` : `${app.name} is now allowed to open.`;
+      await SpeechService.speak(reply, { preferredLang: language });
+      return { success: true, intent: 'UNRESTRICT_APP', reply };
+    }
+
+    if (
+      clean.includes('restricted apps') ||
+      clean.includes('list restricted') ||
+      clean.includes('முடக்கப்பட்ட செயலிகள்')
+    ) {
+      const list = AppNavigationService.getRestrictedAppsList();
+      const reply = list.length > 0
+        ? (language === 'ta' ? `முடக்கப்பட்ட செயலிகள்: ${list.join(', ')}.` : `Restricted apps: ${list.join(', ')}.`)
+        : (language === 'ta' ? 'எந்த செயலியும் முடக்கப்படவில்லை.' : 'No applications are currently restricted.');
+      await SpeechService.speak(reply, { preferredLang: language });
+      return { success: true, intent: 'LIST_RESTRICTED_APPS', reply };
     }
 
     // 7. App Navigation & Switching ("Open WhatsApp", "Switch to YouTube", "Open Camera", etc.)
@@ -811,6 +929,37 @@ export const CommandInterpreter = {
       const res = await InformationService.getWeather(city, language, backendUrl);
       await SpeechService.speak(res.reply, { preferredLang: language });
       return { success: res.success, intent: 'WEATHER', reply: res.reply };
+    }
+
+    // 11a. Open Browser Search & Clean Short Summary
+    if (
+      clean.includes('open browser search') ||
+      clean.includes('search in browser') ||
+      clean.includes('search on browser') ||
+      clean.includes('open browser and search') ||
+      clean.includes('google in browser') ||
+      clean.includes('search chrome') ||
+      clean.includes('உலாவியில் தேடு') ||
+      clean.includes('பிரவுசரில் தேடு')
+    ) {
+      const res = await InternetSearchService.openBrowserSearch(raw, language, backendUrl);
+      return { success: res.success, intent: 'OPEN_BROWSER_SEARCH', reply: res.reply, url: res.url };
+    }
+
+    // 11b. Repeat Read Search Results (Clean Short Summary)
+    if (
+      clean.includes('repeat read the results') ||
+      clean.includes('repeat read results') ||
+      clean.includes('repeat search results') ||
+      clean.includes('read results again') ||
+      clean.includes('repeat search') ||
+      clean.includes('repeat the results') ||
+      clean.includes('read search again') ||
+      clean.includes('முடிவுகளை மீண்டும் சொல்') ||
+      clean.includes('மீண்டும் படி')
+    ) {
+      const res = await InternetSearchService.repeatLastResults(language);
+      return { success: res.success, intent: 'REPEAT_SEARCH_RESULTS', reply: res.reply };
     }
 
     // 11. Web Search Intent

@@ -128,7 +128,15 @@ class MedicalCareManager {
 
     let target = list.find((m) => q.includes(m.name.toLowerCase()) || m.name.toLowerCase().includes(q));
     if (!target) {
-      // Default to the first medicine not yet taken today
+      const isGeneric = !q || q.trim().length === 0 || q.includes('medicine') || q.includes('tablet') || q.includes('pill');
+      if (!isGeneric) {
+        const notFound = language === 'ta'
+          ? `மன்னிக்கவும், "${medicineNameQuery}" உங்கள் மருந்து பட்டியலில் காணப்படவில்லை. எந்த மருந்தை உட்கொண்டீர்கள்?`
+          : `Sorry, I could not find "${medicineNameQuery}" in your prescriptions list. Which medicine did you take?`;
+        await SpeechService.speak(notFound, { preferredLang: language });
+        return { success: false, reply: notFound };
+      }
+      // If user generically said "I took my medicine", select first pending today
       target = list.find((m) => m.lastTakenDate !== todayStr) || list[0];
     }
 
@@ -218,6 +226,10 @@ class MedicalCareManager {
 
     await SpeechService.speak(reply, { preferredLang: language });
     return { success: true, data, reply };
+  }
+
+  async recordGlassDrunk(language = 'en') {
+    return await this.logWaterGlass(1, language);
   }
 
   async announceHydrationStatus(language = 'en') {

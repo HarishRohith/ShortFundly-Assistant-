@@ -7,6 +7,7 @@ import { BatteryService } from '../services/batteryService';
 import { WakeWordService } from '../services/wakeWordService';
 import { SpeechRecognitionService } from '../services/speechRecognitionService';
 import { CommandInterpreter } from '../services/commandInterpreter';
+import { NotificationReaderService } from '../services/notificationService';
 
 export const ASSISTANT_STATE = {
   IDLE: 'IDLE',
@@ -48,13 +49,13 @@ export function useVoiceAssistant() {
     })();
   }, []);
 
-  // Stop Listening / Cancel
+  // Stop Listening / Return to Silent Standby
   const stopListening = useCallback(async () => {
     if (silenceTimeoutRef.current) {
       clearTimeout(silenceTimeoutRef.current);
       silenceTimeoutRef.current = null;
     }
-    await SpeechRecognitionService.stop();
+    WakeWordService.returnToPassiveGate();
     HapticService.onMicClose();
     setState(ASSISTANT_STATE.IDLE);
   }, []);
@@ -62,6 +63,7 @@ export function useVoiceAssistant() {
   // Submit a voice utterance to be interpreted
   const processUtterance = useCallback(async (utterance) => {
     if (!utterance || !utterance.trim()) {
+      WakeWordService.returnToPassiveGate();
       setState(ASSISTANT_STATE.IDLE);
       return;
     }
@@ -74,13 +76,13 @@ export function useVoiceAssistant() {
     const clean = utterance.trim();
     setLastQuery(clean);
 
-    // Check if utterance is just the wake word
+    // Check if utterance is just the calling word
     if (WakeWordService.isWakeWord(clean) && clean.split(/\s+/).length <= 2) {
-      await WakeWordService.triggerWakeWord(preferencesRef.current.language);
+      await WakeWordService.triggerCallingWord(preferencesRef.current.language);
       return;
     }
 
-    // Strip wake word if prefixed: e.g. "Hey Assi what is the battery level"
+    // Strip calling word if prefixed: e.g. "Hey Assi what is the battery level"
     const commandText = WakeWordService.stripWakeWord(clean);
 
     setState(ASSISTANT_STATE.PROCESSING);
@@ -104,14 +106,17 @@ export function useVoiceAssistant() {
         setState(ASSISTANT_STATE.AWAITING_CONFIRMATION);
       } else {
         setState(ASSISTANT_STATE.IDLE);
+        // Automatically return to silent calling gate
+        WakeWordService.returnToPassiveGate();
       }
     } catch (e) {
       HapticService.onError();
       setState(ASSISTANT_STATE.IDLE);
+      WakeWordService.returnToPassiveGate();
     }
   }, []);
 
-  // Start Voice Listening (for direct commands)
+  // Start Voice Listening (for direct manual tap or calling word)
   const startListening = useCallback(async (delayMs = 0) => {
     // If speaking, interrupt speech first
     if (stateRef.current === ASSISTANT_STATE.SPEAKING) {
@@ -125,27 +130,42 @@ export function useVoiceAssistant() {
     }
     accumulatedTranscriptRef.current = '';
 
-    HapticService.onMicOpen();
-    setState((prev) => (prev === ASSISTANT_STATE.AWAITING_CONFIRMATION ? ASSISTANT_STATE.AWAITING_CONFIRMATION : ASSISTANT_STATE.LISTENING));
-
     if (delayMs > 0) {
       await new Promise((r) => setTimeout(r, delayMs));
     }
 
-    if (SpeechRecognitionService.isAvailable()) {
+    HapticService.onMicOpen();
+    WakeWordService.setExplicitActive();
+
+    if (!SpeechRecognitionService.isAvailable()) {
+      setState(ASSISTANT_STATE.IDLE);
+      return false;
+    }
+
+    let started = true;
+    if (!SpeechRecognitionService.isListening) {
       const langCode = preferencesRef.current.language === 'ta' ? 'ta-IN' : 'en-US';
-      await SpeechRecognitionService.start({
+      started = await SpeechRecognitionService.start({
         lang: langCode,
         continuous: true,
-        autoRestart: false,
+        autoRestart: true,
       });
+    }
+
+    if (started) {
+      setState((prev) => (prev === ASSISTANT_STATE.AWAITING_CONFIRMATION ? ASSISTANT_STATE.AWAITING_CONFIRMATION : ASSISTANT_STATE.LISTENING));
+      return true;
+    } else {
+      setState(ASSISTANT_STATE.IDLE);
+      HapticService.onError();
+      return false;
     }
   }, []);
 
   const isWakeGreetingRef = useRef(false);
   const hasAnnouncedStartupRef = useRef(false);
 
-  // Initialize Speech listener, Battery monitor, and Wake word
+  // Initialize Speech listener, Battery monitor, and Calling-Word Gate
   useEffect(() => {
     // 1. Speech listener to sync assistant speaking state
     const unsubscribeSpeech = SpeechService.addListener(({ isSpeaking }) => {
@@ -162,7 +182,8 @@ export function useVoiceAssistant() {
           setTimeout(() => startListening(150), 200);
         } else {
           setState(ASSISTANT_STATE.IDLE);
-          // Resume wake word listening once speaking completes
+          // Return to passive silent gate once speaking completes
+          WakeWordService.returnToPassiveGate();
           if (preferencesRef.current.wakeWordEnabled) {
             setTimeout(() => WakeWordService.startService(preferencesRef.current.language), 300);
           }
@@ -178,19 +199,47 @@ export function useVoiceAssistant() {
       setBatteryLevel(percentage);
     }, preferences.language);
 
-    // 3. Wake Word Service callbacks
+    // 3. Calling Word Gate Service callbacks
     WakeWordService.setCallback(() => {
       isWakeGreetingRef.current = true;
+      setState(ASSISTANT_STATE.LISTENING);
     });
+
     WakeWordService.setCommandCallback((command) => {
       processUtterance(command);
+    });
+
+    // 3b. Notification proactive permission callback ("Can I read?")
+    NotificationReaderService.setPromptCallback((notifItem) => {
+      setPendingAction({ type: 'PROACTIVE_NOTIFICATION_PERMISSION', payload: notifItem });
+      setState(ASSISTANT_STATE.AWAITING_CONFIRMATION);
+    });
+
+    // 4. Stream active speech to screen ONLY when calling word is heard or mic tapped
+    WakeWordService.setActiveSpeechCallback(({ transcript, isFinal }) => {
+      if (!transcript) return;
+      setLastQuery(transcript);
+      accumulatedTranscriptRef.current = transcript;
+
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
+
+      // 1500ms natural silence pause detection before executing
+      silenceTimeoutRef.current = setTimeout(() => {
+        const finalUtterance = accumulatedTranscriptRef.current;
+        accumulatedTranscriptRef.current = '';
+        if (finalUtterance && finalUtterance.trim().length > 0) {
+          processUtterance(finalUtterance);
+        }
+      }, 1500);
     });
 
     if (preferences.wakeWordEnabled) {
       WakeWordService.startService(preferences.language);
     }
 
-    // 4. Initial hands-free startup announcement
+    // 5. Initial hands-free startup announcement
     if (!hasAnnouncedStartupRef.current) {
       hasAnnouncedStartupRef.current = true;
       const lang = preferences.language;
@@ -200,35 +249,11 @@ export function useVoiceAssistant() {
       SpeechService.speak(readyMsg, { preferredLang: lang });
     }
 
-    // 4. Speech Recognition result listener with 1500ms silence pause detection
-    const unsubRecognition = SpeechRecognitionService.addResultListener(({ transcript, isFinal }) => {
-      const currentState = stateRef.current;
-      if ((currentState === ASSISTANT_STATE.LISTENING || currentState === ASSISTANT_STATE.AWAITING_CONFIRMATION) && transcript) {
-        setLastQuery(transcript);
-        accumulatedTranscriptRef.current = transcript;
-
-        // Reset silence timer on every chunk heard
-        if (silenceTimeoutRef.current) {
-          clearTimeout(silenceTimeoutRef.current);
-        }
-
-        // Wait for 1500ms of user silence/pause before executing command
-        silenceTimeoutRef.current = setTimeout(() => {
-          const finalUtterance = accumulatedTranscriptRef.current;
-          accumulatedTranscriptRef.current = '';
-          if (finalUtterance && finalUtterance.trim().length > 0) {
-            processUtterance(finalUtterance);
-          }
-        }, 1500);
-      }
-    });
-
     return () => {
       if (silenceTimeoutRef.current) {
         clearTimeout(silenceTimeoutRef.current);
       }
       unsubscribeSpeech();
-      unsubRecognition();
       BatteryService.stopMonitor();
       WakeWordService.stopService();
     };

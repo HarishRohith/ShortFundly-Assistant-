@@ -9,7 +9,35 @@ class NotificationReaderManager {
   constructor() {
     this.allowedApps = new Set(DEFAULT_PREFERENCES.allowedNotificationApps);
     this.queuedNotifications = [];
+    this.pendingNotification = null;
+    this.lastSpokenNotification = null;
+    this.requirePermissionBeforeReading = true; // Always asks "Can I read?" before blurting out
+    this.onNotificationPromptCallback = null;
     this.initNativeNotificationListener();
+  }
+
+  setPromptCallback(callback) {
+    this.onNotificationPromptCallback = callback;
+  }
+
+  cleanNotificationSummary(rawText) {
+    if (!rawText || typeof rawText !== 'string') return '';
+    let text = rawText;
+    // Strip URLs, phone numbers, and technical noise
+    text = text.replace(/https?:\/\/\S+/gi, '');
+    text = text.replace(/www\.\S+/gi, '');
+    text = text.replace(/\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, ''); // strip long phone digits
+    text = text.replace(/[*_~`#|>]/g, ' ');
+    text = text.replace(/\s+/g, ' ').trim();
+
+    // Take first complete sentence or up to 25 words
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    let shortSentence = sentences[0].trim();
+    const words = shortSentence.split(/\s+/);
+    if (words.length > 25) {
+      shortSentence = words.slice(0, 22).join(' ') + '...';
+    }
+    return shortSentence;
   }
 
   async loadSettings() {
@@ -262,16 +290,74 @@ class NotificationReaderManager {
 
           if (isDiscreet) {
             SpeechService.speak(`New notification from ${friendlyApp}. Discreet mode is on.`);
+            return;
+          }
+
+          // PROACTIVE PERMISSION INTERCEPTOR ("Can I read?")
+          if (this.requirePermissionBeforeReading) {
+            this.pendingNotification = notifItem;
+            const prompt = `You have a message from ${notifItem.sender} on ${friendlyApp}. Can I read it?`;
+            await SpeechService.speak(prompt);
+            if (this.onNotificationPromptCallback) {
+              this.onNotificationPromptCallback(notifItem);
+            }
           } else {
-            // Natural 1-sentence summary spoken aloud
-            const spokenSummary = `From ${friendlyApp}, ${title}: ${text}`;
-            SpeechService.speak(spokenSummary);
+            const shortSummary = this.cleanNotificationSummary(text);
+            SpeechService.speak(`From ${friendlyApp}, ${title} says: ${shortSummary}`);
           }
         }
       });
     } catch (e) {
       console.warn('[NotificationService] Failed to bind native listener:', e);
     }
+  }
+
+  // Read pending short summary when user says "OK" / "Yes" / "Read"
+  async readPendingShortSummary(language = 'en') {
+    if (!this.pendingNotification) {
+      const noPending = language === 'ta' ? 'புதிய செய்தி எதுவும் இல்லை.' : 'No pending message to read.';
+      await SpeechService.speak(noPending, { preferredLang: language });
+      return { success: false, reply: noPending };
+    }
+
+    const notif = this.pendingNotification;
+    this.lastSpokenNotification = notif;
+    this.pendingNotification = null;
+
+    // Mark as read in queue
+    const target = this.queuedNotifications.find((n) => n.text === notif.text);
+    if (target) target.read = true;
+
+    const shortText = this.cleanNotificationSummary(notif.text);
+    HapticService.onSuccess();
+
+    let reply = `In short, ${notif.sender} says: "${shortText}". Say "explain full" if you want me to read the full message.`;
+    if (language === 'ta') {
+      reply = `சுருக்கமாக, ${notif.sender} கூறியது: "${shortText}". முழுமையாக கேட்க "முழுமையாக படி" என்று கூறவும்.`;
+    }
+
+    await SpeechService.speak(reply, { preferredLang: language });
+    return { success: true, notif, shortText, reply };
+  }
+
+  // Read full content review when user says "Explain full"
+  async readFullNotificationReview(language = 'en') {
+    if (!this.lastSpokenNotification) {
+      const msg = language === 'ta' ? 'முழுமையாக படிக்க சமீபத்திய செய்தி எதுவும் இல்லை.' : 'No recent notification to review.';
+      await SpeechService.speak(msg, { preferredLang: language });
+      return { success: false, reply: msg };
+    }
+
+    const notif = this.lastSpokenNotification;
+    HapticService.onSuccess();
+
+    let reply = `Full review from ${notif.appName}, sent by ${notif.sender}: "${notif.text}".`;
+    if (language === 'ta') {
+      reply = `முழு செய்தி விவரம்: ${notif.appName}-இல் ${notif.sender} அனுப்பியது: "${notif.text}".`;
+    }
+
+    await SpeechService.speak(reply, { preferredLang: language });
+    return { success: true, notif, reply };
   }
 
   // Push local notification

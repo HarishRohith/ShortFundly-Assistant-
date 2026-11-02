@@ -26,32 +26,21 @@ class SpatialVisionManager {
   async identifyCurrencyNote(language = 'en') {
     HapticService.onProcessing();
 
-    // Spoken prompt guiding the blind user to position the bill
     const prompt = language === 'ta'
-      ? 'கேமரா திறக்கப்படுகிறது. ரூபாய் நோட்டை கேமராவிற்கு நேராக 10 வினாடிகள் காட்டவும்.'
-      : 'Opening camera. Hold the currency note flat about 6 inches in front of the lens.';
+      ? 'ரூபாய் நோட்டை அடையாளம் காண கேமரா திறக்கப்படுகிறது. கேமராவில் லென்ஸ் அல்லது புகைப்பட வசதியைப் பயன்படுத்தி பார்க்கவும்.'
+      : 'Opening camera for currency inspection. Point your lens at the note to inspect with camera tools or Google Lens.';
     await SpeechService.speak(prompt, { preferredLang: language });
 
     if (Platform.OS === 'android') {
       try {
         await IntentLauncher.startActivityAsync('android.media.action.STILL_IMAGE_CAMERA');
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[SpatialVision] Camera launch error:', e?.message);
+      }
     }
 
-    // In mobile runtime with Gemini Flash backend: analyzes currency features
-    // Simulating verified instant vision classification:
-    const randomDenom = this.DENOMINATIONS[0]; // ₹500 default reference
-    const reply = language === 'ta'
-      ? `இது புதிய ${randomDenom.ta}, நிறம்: ${randomDenom.color}. நோட்டு நல்ல நிலையில் உள்ளது.`
-      : `Identified: Mahatma Gandhi series ${randomDenom.en}, Color: ${randomDenom.color}. The note appears genuine.`;
-
-    // Wait 3 seconds for physical camera alignment
-    setTimeout(async () => {
-      HapticService.onSuccess();
-      await SpeechService.speak(reply, { preferredLang: language });
-    }, 3200);
-
-    return { success: true, denomination: randomDenom.value, reply };
+    HapticService.onSuccess();
+    return { success: true, reply: prompt };
   }
 
   // 2. MEDICINE & DOCUMENT OCR READER
@@ -59,47 +48,41 @@ class SpatialVisionManager {
     HapticService.onProcessing();
 
     const guide = language === 'ta'
-      ? 'மருந்து அட்டை அல்லது ஆவணத்தை கேமராவில் காட்டவும். வாசிக்கிறேன்.'
-      : 'Hold the medicine strip or paper steadily in front of the camera.';
+      ? 'மருந்து அல்லது ஆவணத்தை வாசிக்க கேமரா திறக்கப்படுகிறது. கூகுள் லென்ஸ் மூலம் எளிதாக வாசிக்கலாம்.'
+      : 'Opening camera. Align the medicine label or document in front of the lens to read.';
     await SpeechService.speak(guide, { preferredLang: language });
 
     if (Platform.OS === 'android') {
       try {
         await IntentLauncher.startActivityAsync('android.media.action.STILL_IMAGE_CAMERA');
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[SpatialVision] Camera launch error:', e?.message);
+      }
     }
 
-    const ocrReply = language === 'ta'
-      ? 'மருந்து வாசிக்கப்பட்டது: பாராசிட்டமால் 500 மிகி. காலாவதி தேதி: அக்டோபர் 2027. அளவு: ஒரு மாத்திரை உணவுக்குப் பின்.'
-      : 'Document read: Paracetamol Tablets 500mg, Batch Number P9821, Expiry Date October 2027. Dosage: One tablet after food.';
-
-    setTimeout(async () => {
-      HapticService.onSuccess();
-      await SpeechService.speak(ocrReply, { preferredLang: language });
-    }, 3500);
-
-    return { success: true, reply: ocrReply };
+    HapticService.onSuccess();
+    return { success: true, reply: guide };
   }
 
   // 3. PHYSICAL SCENE & OBSTACLE DESCRIBER
   async describeScene(language = 'en') {
     HapticService.onProcessing();
 
-    const initial = language === 'ta'
-      ? 'சுற்றுப்புறத்தை பார்க்கிறேன். ஒரு வினாடி பொறுக்கவும்.'
-      : 'Scanning your surroundings now. Please hold still for one second.';
-    await SpeechService.speak(initial, { preferredLang: language });
+    const prompt = language === 'ta'
+      ? 'சுற்றுப்புறத்தை பார்க்க கேமரா திறக்கப்படுகிறது.'
+      : 'Opening camera to view your surroundings.';
+    await SpeechService.speak(prompt, { preferredLang: language });
 
-    const sceneReply = language === 'ta'
-      ? 'உங்கள் முன்: 5 படிகள் தொலைவில் ஒரு கதவு உள்ளது. உங்கள் வலதுபுறத்தில் நாற்காலி உள்ளது. தரைப்பகுதி தெளிவாக உள்ளது.'
-      : 'In front of you: There is a doorway approximately 5 steps ahead. There is a chair to your right side. The walkway ahead is clear.';
+    if (Platform.OS === 'android') {
+      try {
+        await IntentLauncher.startActivityAsync('android.media.action.STILL_IMAGE_CAMERA');
+      } catch (e) {
+        console.warn('[SpatialVision] Camera launch error:', e?.message);
+      }
+    }
 
-    setTimeout(async () => {
-      HapticService.onSuccess();
-      await SpeechService.speak(sceneReply, { preferredLang: language });
-    }, 3000);
-
-    return { success: true, reply: sceneReply };
+    HapticService.onSuccess();
+    return { success: true, reply: prompt };
   }
 }
 

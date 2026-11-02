@@ -127,16 +127,21 @@ export default function App() {
 
           // If speech is playing, a single tap silences it immediately
           if (state === ASSISTANT_STATE.SPEAKING) {
-            stopSpeech();
-            HapticService.onStop();
+            SpeechService.stop();
+            if (typeof stopSpeech === 'function') {
+              stopSpeech();
+            }
+            HapticService.onStop?.();
             return;
           }
 
           // Long press timer (500ms): triggers Walkie-Talkie Mode
           holdTimerRef.current = setTimeout(() => {
             isHoldingRef.current = true;
-            HapticService.onHoldToTalk();
-            startListening();
+            HapticService.onHoldToTalk?.();
+            if (typeof startListening === 'function') {
+              startListening();
+            }
           }, 500);
         },
         onPanResponderRelease: (evt, gestureState) => {
@@ -148,7 +153,9 @@ export default function App() {
           // If holding in Walkie-Talkie mode, releasing stops listening & evaluates speech
           if (isHoldingRef.current) {
             isHoldingRef.current = false;
-            stopListening();
+            if (typeof stopListening === 'function') {
+              stopListening();
+            }
             return;
           }
 
@@ -158,8 +165,11 @@ export default function App() {
 
           // Swipe Down: Immediately Silence speech
           if (gestureState.dy > 50 && Math.abs(gestureState.dx) < 50) {
-            stopSpeech();
-            HapticService.onStop();
+            SpeechService.stop();
+            if (typeof stopSpeech === 'function') {
+              stopSpeech();
+            }
+            HapticService.onStop?.();
             return;
           }
 
@@ -218,9 +228,6 @@ export default function App() {
       <View
         style={styles.container}
         {...panResponder.panHandlers}
-        accessible={true}
-        accessibilityLabel="Assi Voice Assistant Screen. Tap or say Hey Assi to command. Double tap to repeat."
-        accessibilityLiveRegion="assertive"
       >
         {/* Accessible Top Bar */}
         <AccessibleHeader
@@ -257,7 +264,7 @@ export default function App() {
           <TouchableOpacity
             style={styles.telemetryPill}
             onPress={async () => {
-              const res = await MedicalCareService.recordGlassDrunk(preferences?.language || 'auto');
+              const res = await MedicalCareService.logWaterGlass(1, preferences?.language || 'auto');
               setHydrationGlasses((prev) => prev + 1);
               await SpeechService.speak(res.reply, { preferredLang: preferences?.language || 'auto' });
             }}

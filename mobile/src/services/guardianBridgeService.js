@@ -67,9 +67,9 @@ class GuardianBridgeManager {
     try {
       await Linking.openURL(smsUrl);
       HapticService.onSuccess();
-      let reply = `Sent request to Guardian to buy: "${items}".`;
+      let reply = `Opened request to Guardian in SMS to buy: "${items}". Tap send to deliver.`;
       if (language === 'ta') {
-        reply = `"${items}" தேவை என்று காப்பாளருக்கு குறுஞ்செய்தி அனுப்பப்பட்டது.`;
+        reply = `"${items}" வாங்க காப்பாளருக்கு குறுஞ்செய்தி உருவாக்கப்பட்டது. அனுப்ப தொடவும்.`;
       }
       await SpeechService.speak(reply, { preferredLang: language });
       return { success: true, reply, items };

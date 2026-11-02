@@ -70,7 +70,7 @@ class SpeechRecognitionManager {
         });
       });
 
-      const scheduleRestart = (delay = 600) => {
+      const scheduleRestart = (delay = 500) => {
         if (!this.autoRestart || this.isRestarting) return;
         this.isRestarting = true;
         if (this.restartTimer) {
@@ -92,13 +92,14 @@ class SpeechRecognitionManager {
       const errSub = ExpoSpeechRecognitionModule.addListener('error', (event) => {
         console.log('[SpeechRecognition] Error event:', event?.error, event?.message);
         this.notifyError(event);
-        scheduleRestart(800);
+        // Error 6 (speech timeout) and Error 7 (no match) are normal in background listening
+        scheduleRestart(500);
       });
 
       const endSub = ExpoSpeechRecognitionModule.addListener('end', () => {
         this.isListening = false;
         this.notifyState(false);
-        scheduleRestart(400);
+        scheduleRestart(350);
       });
 
       this.subscriptions = [resSub, errSub, endSub].filter(Boolean);
@@ -151,6 +152,40 @@ class SpeechRecognitionManager {
       this.notifyState(false);
       return false;
     }
+  }
+
+  // Temporarily pause recognition (e.g. while Assi is speaking) without clearing autoRestart flag
+  async pause() {
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
+    this.isRestarting = false;
+
+    if (!this.isAvailable()) return;
+    try {
+      if (typeof ExpoSpeechRecognitionModule.stop === 'function') {
+        await ExpoSpeechRecognitionModule.stop();
+      }
+    } catch (e) {
+      try {
+        if (typeof ExpoSpeechRecognitionModule.abort === 'function') {
+          await ExpoSpeechRecognitionModule.abort();
+        }
+      } catch (err) {}
+    }
+    this.isListening = false;
+    this.notifyState(false);
+  }
+
+  // Resume continuous listening after speaking ends
+  async resume() {
+    if (!this.autoRestart) return false;
+    return await this.start({
+      lang: this.currentLanguage,
+      continuous: true,
+      autoRestart: true,
+    });
   }
 
   async stop() {

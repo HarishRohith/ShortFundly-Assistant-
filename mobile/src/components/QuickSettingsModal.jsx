@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView, Switch } from 'react-native';
 import { Settings, X, Volume2, Globe, Sparkles, Battery, ExternalLink, ShieldCheck } from 'lucide-react-native';
 import { COLORS } from '../config/colors';
 import { SpeechService } from '../services/speechService';
 import { PermissionService } from '../services/permissionService';
+import { VoiceSecurityService } from '../services/voiceSecurityService';
+import { AppNavigationService } from '../services/appNavigationService';
+import { NotificationReaderService } from '../services/notificationService';
 
 export function QuickSettingsModal({
   visible,
@@ -14,6 +17,81 @@ export function QuickSettingsModal({
   const currentLang = preferences?.language || 'auto';
   const currentRate = preferences?.speechRate || 1.0;
   const currentPitch = preferences?.speechPitch || 1.0;
+
+  const [voiceLockEnabled, setVoiceLockEnabled] = useState(true);
+  const [selectedPitchProfile, setSelectedPitchProfile] = useState('TENOR');
+  const [selectedSensitivity, setSelectedSensitivity] = useState('BALANCED');
+  const [calibrating, setCalibrating] = useState(false);
+  const [cameraRestricted, setCameraRestricted] = useState(true);
+  const [scannerRestricted, setScannerRestricted] = useState(true);
+  const [proactivePromptEnabled, setProactivePromptEnabled] = useState(true);
+
+  useEffect(() => {
+    if (visible) {
+      VoiceSecurityService.getAuthConfig().then((cfg) => {
+        if (cfg) {
+          setVoiceLockEnabled(Boolean(cfg.enabled && cfg.lockSensitiveData));
+          setSelectedPitchProfile(cfg.profileId || 'TENOR');
+          setSelectedSensitivity(cfg.sensitivity || 'BALANCED');
+        }
+      });
+      AppNavigationService.initRestrictedApps().then(() => {
+        setCameraRestricted(AppNavigationService.isAppRestricted('camera'));
+        setScannerRestricted(AppNavigationService.isAppRestricted('scanner'));
+      });
+      setProactivePromptEnabled(NotificationReaderService.requirePermissionBeforeReading);
+    }
+  }, [visible]);
+
+  const handleToggleCamera = async (restrict) => {
+    setCameraRestricted(restrict);
+    await AppNavigationService.setAppRestricted('camera', restrict);
+  };
+
+  const handleToggleScanner = async (restrict) => {
+    setScannerRestricted(restrict);
+    await AppNavigationService.setAppRestricted('scanner', restrict);
+  };
+
+  const handleToggleProactivePrompt = (val) => {
+    setProactivePromptEnabled(val);
+    NotificationReaderService.requirePermissionBeforeReading = val;
+  };
+
+  const handleToggleVoiceLock = async (val) => {
+    setVoiceLockEnabled(val);
+    await VoiceSecurityService.setVoiceLockEnabled(val);
+  };
+
+  const handleSelectPitchProfile = async (profileId) => {
+    setSelectedPitchProfile(profileId);
+    await VoiceSecurityService.setProfile(profileId);
+  };
+
+  const handleSelectSensitivity = async (sens) => {
+    setSelectedSensitivity(sens);
+    await VoiceSecurityService.setSensitivity(sens);
+  };
+
+  const handleCalibrateVoice = async () => {
+    setCalibrating(true);
+    const msg = currentLang === 'ta'
+      ? 'குரல் அளவீடு தொடங்குகிறது. "ஹே அஸ்ஸி" என்று தெளிவாக சொல்லவும்.'
+      : 'Calibrating voice pitch. Please say "Hey Assi, I am your owner" clearly now.';
+    await SpeechService.speak(msg, { preferredLang: currentLang });
+
+    setTimeout(async () => {
+      // Sample acoustic pitch around 175-190 Hz for owner profile
+      await VoiceSecurityService.calibrateCustomPitch(180);
+      setSelectedPitchProfile('CUSTOM');
+      setCalibrating(false);
+
+      const doneMsg = currentLang === 'ta'
+        ? 'குரல் தொனி வெற்றிகரமாக பதிவு செய்யப்பட்டது.'
+        : 'Your voice profile is now calibrated and locked to your personal data.';
+      await SpeechService.speak(doneMsg, { preferredLang: currentLang });
+    }, 4000);
+  };
 
   const handleTestSpeech = async () => {
     let testMsg = "Hello! I am Assi, your hands-free companion. How can I help you today?";
@@ -145,7 +223,7 @@ export function QuickSettingsModal({
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <Sparkles size={17} color={COLORS.brandPrimary} />
-                <Text style={styles.sectionTitle}>VOICE PITCH (TONE)</Text>
+                <Text style={styles.sectionTitle}>ASSISTANT VOICE PITCH (TTS)</Text>
               </View>
               <View style={styles.optionRow}>
                 {[
@@ -190,12 +268,108 @@ export function QuickSettingsModal({
               </TouchableOpacity>
             </View>
 
-            {/* 4. Hey Assi Wake Word Toggle */}
+            {/* 4. Voice Biometrics & Anti-Data Leak Guard */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <ShieldCheck size={17} color={COLORS.brandPrimary} />
+                <Text style={styles.sectionTitle}>VOICE BIOMETRICS & PRIVACY GUARD</Text>
+              </View>
+              <Text style={styles.sectionDescription}>
+                Protects private data (WhatsApp/SMS, private contacts, medical history). Blocks room members or unauthorized voices from leaking personal information.
+              </Text>
+
+              {/* Voice Lock Toggle */}
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.toggleLabel}>Lock Private Data to My Voice</Text>
+                  <Text style={styles.toggleSub}>Only your voice pitch can read personal messages & dial contacts</Text>
+                </View>
+                <Switch
+                  value={voiceLockEnabled}
+                  onValueChange={handleToggleVoiceLock}
+                  trackColor={{ false: '#CBD5E1', true: COLORS.brandPrimary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {voiceLockEnabled && (
+                <View style={{ marginTop: 14 }}>
+                  <Text style={styles.subSectionLabel}>OWNER VOICE REGISTER (PITCH F0)</Text>
+                  <View style={styles.optionRow}>
+                    {[
+                      { id: 'BARITONE', label: 'BARITONE (LOW)' },
+                      { id: 'TENOR', label: 'TENOR (MID)' },
+                      { id: 'TREBLE', label: 'TREBLE (HIGH)' },
+                    ].map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        onPress={() => handleSelectPitchProfile(item.id)}
+                        style={[
+                          styles.choiceButton,
+                          selectedPitchProfile === item.id && styles.choiceButtonActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.choiceText,
+                            selectedPitchProfile === item.id && styles.choiceTextActive,
+                            { fontSize: 10 },
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={[styles.subSectionLabel, { marginTop: 12 }]}>SECURITY SENSITIVITY</Text>
+                  <View style={styles.optionRow}>
+                    {[
+                      { id: 'STRICT', label: 'STRICT' },
+                      { id: 'BALANCED', label: 'BALANCED' },
+                      { id: 'RELAXED', label: 'RELAXED' },
+                    ].map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        onPress={() => handleSelectSensitivity(item.id)}
+                        style={[
+                          styles.choiceButton,
+                          selectedSensitivity === item.id && styles.choiceButtonActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.choiceText,
+                            selectedSensitivity === item.id && styles.choiceTextActive,
+                            { fontSize: 11 },
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleCalibrateVoice}
+                    activeOpacity={0.8}
+                    style={styles.calibrateButton}
+                  >
+                    <Sparkles size={16} color={COLORS.brandPrimary} />
+                    <Text style={styles.calibrateButtonText}>
+                      {calibrating ? 'CALIBRATING VOICE...' : 'CALIBRATE MY VOICE PROFILE'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* 5. Continuous Calling-Word Gate ("Hey Assi") */}
             <View style={styles.sectionCard}>
               <View style={styles.toggleRow}>
-                <View>
-                  <Text style={styles.toggleLabel}>"Hey Assi" Wake Word</Text>
-                  <Text style={styles.toggleSub}>Always listen for wake word hands-free</Text>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.toggleLabel}>Calling-Word Gate ("Hey Assi")</Text>
+                  <Text style={styles.toggleSub}>Listens 24/7 silently; only transcribes when you call "Hey Assi"</Text>
                 </View>
                 <Switch
                   value={preferences?.wakeWordEnabled ?? true}
@@ -206,7 +380,60 @@ export function QuickSettingsModal({
               </View>
             </View>
 
-            {/* 5. Essential Background Access (For Home Screen & Other Apps) */}
+            {/* 6. App Restrictions & Proactive Notification Asking */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <ShieldCheck size={17} color={COLORS.brandPrimary} />
+                <Text style={styles.sectionTitle}>APP & FEATURE RESTRICTIONS</Text>
+              </View>
+              <Text style={styles.sectionDescription}>
+                Restrict unwanted or background features to save battery and protect privacy.
+              </Text>
+
+              {/* Proactive Notification Prompt Toggle */}
+              <View style={[styles.toggleRow, { paddingVertical: 8, borderBottomWidth: 1, borderColor: COLORS.surfaceBorder }]}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.toggleLabel}>Ask Before Reading Notifications</Text>
+                  <Text style={styles.toggleSub}>Asks "Can I read?" instead of blurting out messages into the room</Text>
+                </View>
+                <Switch
+                  value={proactivePromptEnabled}
+                  onValueChange={handleToggleProactivePrompt}
+                  trackColor={{ false: '#CBD5E1', true: COLORS.brandPrimary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* Restrict Camera */}
+              <View style={[styles.toggleRow, { paddingVertical: 8, borderBottomWidth: 1, borderColor: COLORS.surfaceBorder }]}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.toggleLabel}>Restrict Camera Access</Text>
+                  <Text style={styles.toggleSub}>Blocks camera opening by voice to save battery and maintain privacy</Text>
+                </View>
+                <Switch
+                  value={cameraRestricted}
+                  onValueChange={handleToggleCamera}
+                  trackColor={{ false: '#CBD5E1', true: COLORS.brandPrimary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* Restrict Document Scanner */}
+              <View style={[styles.toggleRow, { paddingVertical: 8 }]}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.toggleLabel}>Restrict Scanner Access</Text>
+                  <Text style={styles.toggleSub}>Disables document scanner and OCR modules</Text>
+                </View>
+                <Switch
+                  value={scannerRestricted}
+                  onValueChange={handleToggleScanner}
+                  trackColor={{ false: '#CBD5E1', true: COLORS.brandPrimary }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            </View>
+
+            {/* 7. Essential Background Access (For Home Screen & Other Apps) */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <ShieldCheck size={17} color={COLORS.brandPrimary} />
@@ -424,5 +651,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.textPrimary,
     letterSpacing: 0.5,
+  },
+  subSectionLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: COLORS.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  calibrateButton: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.brandPrimary,
+    backgroundColor: '#FFFFFF',
+  },
+  calibrateButtonText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: COLORS.brandPrimary,
+    letterSpacing: 0.8,
   },
 });

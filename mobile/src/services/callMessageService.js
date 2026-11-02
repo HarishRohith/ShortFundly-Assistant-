@@ -171,25 +171,70 @@ export const CallMessageService = {
 
   // Parse message intent
   parseMessageIntent(query) {
+    if (!query || typeof query !== 'string') return null;
     const q = query.trim();
-    const isWhatsApp = /whatsapp/i.test(q);
+    const isWhatsApp = /whatsapp|வாட்ஸ்அப்/i.test(q);
 
-    const match1 = q.match(/(?:send\s+a?\s*message|message|text|whatsapp)\s+to\s+([^,]+?)\s+(?:saying|that|with text|message)\s+(.+)/i);
-    const match2 = q.match(/(?:send\s+a?\s*message|message|text|whatsapp)\s+to\s+([^,]+)/i);
+    // Strip leading conversational prefixes: "open messenger and", "open messages and", "can you please"
+    let clean = q.replace(/^(?:hey assi|assi|please|can you|could you)?\s*(?:open (?:the )?(?:messenger|messages|sms|whatsapp) (?:and|,)?\s*)?/i, '').trim();
 
+    // Pattern 1: "send <content> (sms|message|text) to <recipient>" (e.g. "send Hi SMS to Harish")
+    const match1 = clean.match(/^send\s+(.+?)\s+(?:sms|message|text|whatsapp)\s+to\s+([a-zA-Z0-9\s]+)$/i);
     if (match1) {
       return {
         type: 'message',
         platform: isWhatsApp ? 'whatsapp' : 'sms',
-        recipient: match1[1].trim(),
-        content: match1[2].trim(),
+        recipient: match1[2].trim(),
+        content: match1[1].trim(),
       };
-    } else if (match2) {
+    }
+
+    // Pattern 2: "send (sms|message|text) to <recipient> (saying|that|with text|message|:) <content>"
+    const match2 = clean.match(/^(?:send\s+a?\s*)?(?:sms|message|text|whatsapp)\s+to\s+([^,]+?)\s+(?:saying|that|with text|with message|message|:)\s+(.+)$/i);
+    if (match2) {
       return {
         type: 'message',
         platform: isWhatsApp ? 'whatsapp' : 'sms',
         recipient: match2[1].trim(),
-        content: '',
+        content: match2[2].trim(),
+      };
+    }
+
+    // Pattern 3: "send <content> to <recipient>" (e.g. "send hi to Harish")
+    const match3 = clean.match(/^send\s+(.+?)\s+to\s+([a-zA-Z0-9\s]+)$/i);
+    if (match3) {
+      const recip = match3[2].trim();
+      const cont = match3[1].trim();
+      const nonContacts = ['spotify', 'youtube', 'chrome', 'browser', 'google', 'camera'];
+      if (!nonContacts.includes(recip.toLowerCase())) {
+        return {
+          type: 'message',
+          platform: isWhatsApp ? 'whatsapp' : 'sms',
+          recipient: recip,
+          content: cont,
+        };
+      }
+    }
+
+    // Pattern 4: "send (sms|message|text|whatsapp) to <recipient>" (without content specified)
+    const match4 = clean.match(/^(?:send\s+a?\s*)?(?:sms|message|text|whatsapp)\s+to\s+([^,]+)$/i);
+    if (match4) {
+      return {
+        type: 'message',
+        platform: isWhatsApp ? 'whatsapp' : 'sms',
+        recipient: match4[1].trim(),
+        content: 'Hi',
+      };
+    }
+
+    // Pattern 5: "text/message/whatsapp <recipient> <content>"
+    const match5 = clean.match(/^(?:text|message|whatsapp)\s+([a-zA-Z0-9]+)\s+(.+)$/i);
+    if (match5) {
+      return {
+        type: 'message',
+        platform: isWhatsApp ? 'whatsapp' : 'sms',
+        recipient: match5[1].trim(),
+        content: match5[2].trim(),
       };
     }
 

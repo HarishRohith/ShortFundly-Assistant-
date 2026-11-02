@@ -51,6 +51,11 @@ class BatteryManager {
     };
   }
 
+  async getLevel() {
+    const s = await this.getStatus();
+    return s.percentage;
+  }
+
   // Generate spoken status message
   async announceStatus(language = 'en') {
     const status = await this.getStatus();

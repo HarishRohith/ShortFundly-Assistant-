@@ -71,11 +71,11 @@ class FallSafetyManager {
     let battery = 75;
     try {
       const b = await BatteryService.getLevel();
-      battery = Math.round(b * 100);
+      battery = typeof b === 'number' && b > 1 ? Math.round(b) : Math.round((b || 0.8) * 100);
     } catch (e) {}
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const sosMessage = `URGENT SOS: Fall detected for your ward at ${timestamp}. No response received. Battery: ${battery}%. Please check immediately!`;
+    const sosMessage = `URGENT SOS: Fall alert triggered for your ward at ${timestamp}. Battery: ${battery}%. Please check immediately!`;
 
     if (guardian && guardian.phoneNumber) {
       try {
@@ -84,8 +84,8 @@ class FallSafetyManager {
     }
 
     const sosReply = language === 'ta'
-      ? 'பதில் இல்லை. உங்கள் காப்பாளருக்கு அவசர வீழ்ச்சி செய்தி அனுப்பப்பட்டது! உடனே அழைக்கிறேன்.'
-      : 'No response detected. Fall SOS dispatched to your Guardian! Calling Guardian now!';
+      ? 'காப்பாளருக்கு அவசர குறுஞ்செய்தி திறக்கப்பட்டது! இப்போது அழைக்கிறேன்.'
+      : 'Opening emergency message to your Guardian and placing call now!';
     await SpeechService.speak(sosReply, { preferredLang: language });
 
     if (guardian && guardian.phoneNumber) {
